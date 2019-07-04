@@ -370,6 +370,10 @@ For Android MediaPlayer, you will need to build your own controls or use a packa
 
 Platforms: Android ExoPlayer, iOS, react-native-dom
 
+### DRM
+
+To setup DRM please follow [this guide](./DRM.md)
+
 #### filter
 Add video filter
 * **FilterType.NONE (default)** - No Filter
@@ -733,6 +737,17 @@ source={{ uri: 'ipod-library:///path/to/music.mp3' }}
 Note: Using this feature adding an entry for NSAppleMusicUsageDescription to your Info.plist file as described [here](https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CocoaKeys.html)
 
 Platforms: iOS
+
+##### Explicit mimetype for the stream
+
+Provide a member `type` with value (`mpd`/`m3u8`/`ism`) inside the source object.
+Sometimes is needed when URL extension does not match with the mimetype that you are expecting, as seen on the next example. (Extension is .ism -smooth streaming- but file served is on format mpd -mpeg dash-)
+
+Example:
+```
+source={{ uri: 'http://host-serving-a-type-different-than-the-extension.ism/manifest(format=mpd-time-csf)',
+type: 'mpd' }}
+```
 
 ###### Other protocols
 

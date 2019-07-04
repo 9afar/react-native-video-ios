@@ -24,6 +24,7 @@ import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultLoadControl;
@@ -35,6 +36,7 @@ import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.drm.OfflineLicenseHelper;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
 import com.google.android.exoplayer2.mediacodec.MediaCodecRenderer;
 import com.google.android.exoplayer2.mediacodec.MediaCodecUtil;
@@ -1161,5 +1163,11 @@ class ReactExoplayerView extends FrameLayout implements
         } else if (getChildAt(1) instanceof PlayerControlView && exoPlayerView != null) {
             removeViewAt(1);
         }
+    }
+
+    public void save(ReadableMap options, Promise promise) {
+        if ()
+        OfflineLicenseHelper.
+        promise.resolve("ok");
     }
 }

@@ -74,8 +74,9 @@ export default class Video extends Component {
     this.setNativeProps({ fullscreen: false });
   };
 
-  save = async (options?) => {
-    return await NativeModules.VideoManager.save(options, findNodeHandle(this._root));
+  save = async (options) => {
+    console.log('calling save');
+    return await NativeModules.VideoManager.save(options);
   }
 
   restoreUserInterfaceForPictureInPictureStopCompleted = (restored) => {

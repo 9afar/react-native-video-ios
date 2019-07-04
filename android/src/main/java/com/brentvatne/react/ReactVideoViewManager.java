@@ -39,6 +39,8 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoView> {
     public static final String PROP_PLAY_IN_BACKGROUND = "playInBackground";
     public static final String PROP_CONTROLS = "controls";
 
+    public static final int COMMAND_SAVE = 1;
+
     @Override
     public String getName() {
         return REACT_CLASS;
@@ -47,6 +49,26 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoView> {
     @Override
     protected ReactVideoView createViewInstance(ThemedReactContext themedReactContext) {
         return new ReactVideoView(themedReactContext);
+    }
+
+    @Override
+    public Map<String,Integer> getCommandsMap() {
+        Log.d("React"," View manager getCommandsMap:");
+        return MapBuilder.of("save", COMMAND_SAVE);
+    }
+
+    @Override
+    public void receiveCommand(ReactVideoView view, int commandType, @Nullable ReadableArray args) {
+        Assertions.assertNotNull(view);
+        Assertions.assertNotNull(args);
+        switch (commandType) {
+            case COMMAND_SAVE: {
+                view.save(args);
+                return;
+            }
+            default:
+                throw new IllegalArgumentException(String.format("Unsupported command %d received by %s.", commandType, getClass().getSimpleName()));
+        }
     }
 
     @Override

@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import com.facebook.react.bridge.Dynamic;
+import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.common.MapBuilder;
@@ -60,6 +61,12 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     private static final String PROP_HIDE_SHUTTER_VIEW = "hideShutterView";
     private static final String PROP_CONTROLS = "controls";
 
+    private ReactExoplayerView reactExoplayerInstance;
+
+    public ReactExoplayerViewManager(ReactApplicationContext reactContext) {
+        super();
+    }
+
     @Override
     public String getName() {
         return REACT_CLASS;
@@ -67,7 +74,12 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
 
     @Override
     protected ReactExoplayerView createViewInstance(ThemedReactContext themedReactContext) {
-        return new ReactExoplayerView(themedReactContext);
+        reactExoplayerInstance = new ReactExoplayerView(themedReactContext);
+        return reactExoplayerInstance;
+    }
+
+    public ReactExoplayerView getReactExoplayerInstance() { // <-- returns the View instance
+        return reactExoplayerInstance;
     }
 
     @Override

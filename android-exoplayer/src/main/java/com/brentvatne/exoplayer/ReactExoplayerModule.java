@@ -11,10 +11,12 @@ import com.facebook.react.bridge.ReadableMap;
 public class ReactExoplayerModule extends ReactContextBaseJavaModule {
 
     private ReactExoplayerView reactExoplayerInstance;
+    private ReactExoplayerViewManager manager;
 
     public ReactExoplayerModule(ReactApplicationContext reactContext, ReactExoplayerViewManager manager) {
         super(reactContext);
         if (manager != null) {
+            this.manager = manager;
             reactExoplayerInstance = manager.getReactExoplayerInstance();
         }
 
@@ -27,6 +29,9 @@ public class ReactExoplayerModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void save(ReadableMap options, Promise promise) {
+        if (reactExoplayerInstance == null && manager != null) {
+            reactExoplayerInstance = manager.getReactExoplayerInstance();
+        }
         if (reactExoplayerInstance != null) {
             reactExoplayerInstance.save(options, promise);
         } else {

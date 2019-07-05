@@ -1291,23 +1291,6 @@ class ReactExoplayerView extends FrameLayout implements
     }
 
     public void save(ReadableMap options, Promise promise) {
-        if (drmLicenseUrl != null) {
-            DrmSessionManager<FrameworkMediaCrypto> drmSessionManager = null;
-            if (this.drmUUID != null) {
-                try {
-                    drmSessionManager = buildDrmSessionManager(this.drmUUID, this.drmLicenseUrl,
-                            this.drmLicenseHeader);
-                } catch (UnsupportedDrmException e) {
-                    int errorStringId = Util.SDK_INT < 18 ? R.string.error_drm_not_supported
-                            : (e.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
-                            ? R.string.error_drm_unsupported_scheme : R.string.error_drm_unknown);
-                    eventEmitter.error(getResources().getString(errorStringId), e);
-                    return;
-                }
-            }
-
-        }
-        OfflineLicenseHelper.
         promise.resolve("ok");
     }
 }

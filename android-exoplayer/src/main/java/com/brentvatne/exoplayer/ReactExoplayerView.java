@@ -30,7 +30,6 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlaybackException;
-import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackParameters;
@@ -44,6 +43,7 @@ import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.HttpMediaDrmCallback;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
+import com.google.android.exoplayer2.upstream.DefaultLoadErrorHandlingPolicy;
 import com.google.android.exoplayer2.mediacodec.MediaCodecRenderer;
 import com.google.android.exoplayer2.mediacodec.MediaCodecUtil;
 import com.google.android.exoplayer2.metadata.Metadata;
@@ -173,7 +173,7 @@ class ReactExoplayerView extends FrameLayout implements
             switch (msg.what) {
                 case SHOW_PROGRESS:
                     if (player != null
-                            && player.getPlaybackState() == ExoPlayer.STATE_READY
+                            && player.getPlaybackState() == Player.STATE_READY
                             && player.getPlayWhenReady()
                             ) {
                         long pos = player.getCurrentPosition();
@@ -358,22 +358,39 @@ class ReactExoplayerView extends FrameLayout implements
                     trackSelector.setParameters(trackSelector.buildUponParameters()
                             .setMaxVideoBitrate(maxBitRate == 0 ? Integer.MAX_VALUE : maxBitRate));
 
-                    DefaultAllocator allocator = new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE);
-                    DefaultLoadControl defaultLoadControl = new DefaultLoadControl(allocator, minBufferMs, maxBufferMs, bufferForPlaybackMs, bufferForPlaybackAfterRebufferMs, -1, true);
-
-                    DrmSessionManager<FrameworkMediaCrypto> drmSessionManager = null;
-                    if (self.drmUUID != null) {
-                        try {
-                            drmSessionManager = buildDrmSessionManager(self.drmUUID, self.drmLicenseUrl,
-                                    self.drmLicenseHeader);
-                        } catch (UnsupportedDrmException e) {
-                            int errorStringId = Util.SDK_INT < 18 ? R.string.error_drm_not_supported
-                                    : (e.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
-                                    ? R.string.error_drm_unsupported_scheme : R.string.error_drm_unknown);
-                            eventEmitter.error(getResources().getString(errorStringId), e);
-                            return;
-                        }
+            DefaultAllocator allocator = new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE);
+            DefaultLoadControl.Builder defaultLoadControlBuilder = new DefaultLoadControl.Builder();
+            defaultLoadControlBuilder.setAllocator(allocator);
+            defaultLoadControlBuilder.setBufferDurationsMs(minBufferMs, maxBufferMs, bufferForPlaybackMs, bufferForPlaybackAfterRebufferMs);
+            defaultLoadControlBuilder.setTargetBufferBytes(-1);
+            defaultLoadControlBuilder.setPrioritizeTimeOverSizeThresholds(true);
+            DefaultLoadControl defaultLoadControl = defaultLoadControlBuilder.createDefaultLoadControl();
+            DrmSessionManager<FrameworkMediaCrypto> drmSessionManager = null;
+                if (self.drmUUID != null) {
+                    try {
+                        drmSessionManager = buildDrmSessionManager(self.drmUUID, self.drmLicenseUrl,
+                                self.drmLicenseHeader);
+                    } catch (UnsupportedDrmException e) {
+                        int errorStringId = Util.SDK_INT < 18 ? R.string.error_drm_not_supported
+                                : (e.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
+                                ? R.string.error_drm_unsupported_scheme : R.string.error_drm_unknown);
+                        eventEmitter.error(getResources().getString(errorStringId), e);
+                        return;
                     }
+                }
+            DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(
+                getContext(),
+                drmSessionManager,
+                DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF
+            );
+            player = ExoPlayerFactory.newSimpleInstance(getContext(), renderersFactory, trackSelector, defaultLoadControl);
+            player.addListener(this);
+            player.addMetadataOutput(this);
+            exoPlayerView.setPlayer(player);
+            audioBecomingNoisyReceiver.setListener(this);
+            BANDWIDTH_METER.addEventListener(new Handler(), this);
+            setPlayWhenReady(!isPaused);
+            playerNeedsSource = true;
 
                     DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(getContext(),
                             drmSessionManager, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF);
@@ -519,7 +536,7 @@ class ReactExoplayerView extends FrameLayout implements
         if (player != null) {
             updateResumePosition();
             player.release();
-            player.setMetadataOutput(null);
+            player.removeMetadataOutput(this);
             player = null;
             trackSelector = null;
         }
@@ -557,12 +574,12 @@ class ReactExoplayerView extends FrameLayout implements
     private void startPlayback() {
         if (player != null) {
             switch (player.getPlaybackState()) {
-                case ExoPlayer.STATE_IDLE:
-                case ExoPlayer.STATE_ENDED:
+                case Player.STATE_IDLE:
+                case Player.STATE_ENDED:
                     initializePlayer();
                     break;
-                case ExoPlayer.STATE_BUFFERING:
-                case ExoPlayer.STATE_READY:
+                case Player.STATE_BUFFERING:
+                case Player.STATE_READY:
                     if (!player.getPlayWhenReady()) {
                         setPlayWhenReady(true);
                     }
@@ -656,7 +673,7 @@ class ReactExoplayerView extends FrameLayout implements
         eventEmitter.audioBecomingNoisy();
     }
 
-    // ExoPlayer.EventListener implementation
+    // Player.EventListener implementation
 
     @Override
     public void onLoadingChanged(boolean isLoading) {
@@ -667,15 +684,15 @@ class ReactExoplayerView extends FrameLayout implements
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
         String text = "onStateChanged: playWhenReady=" + playWhenReady + ", playbackState=";
         switch (playbackState) {
-            case ExoPlayer.STATE_IDLE:
+            case Player.STATE_IDLE:
                 text += "idle";
                 eventEmitter.idle();
                 break;
-            case ExoPlayer.STATE_BUFFERING:
+            case Player.STATE_BUFFERING:
                 text += "buffering";
                 onBuffering(true);
                 break;
-            case ExoPlayer.STATE_READY:
+            case Player.STATE_READY:
                 text += "ready";
                 eventEmitter.ready();
                 onBuffering(false);
@@ -686,7 +703,7 @@ class ReactExoplayerView extends FrameLayout implements
                     playerControlView.show();
                 }
                 break;
-            case ExoPlayer.STATE_ENDED:
+            case Player.STATE_ENDED:
                 text += "ended";
                 eventEmitter.end();
                 onStopPlayback();
@@ -812,7 +829,7 @@ class ReactExoplayerView extends FrameLayout implements
         }
         // When repeat is turned on, reaching the end of the video will not cause a state change
         // so we need to explicitly detect it.
-        if (reason == ExoPlayer.DISCONTINUITY_REASON_PERIOD_TRANSITION
+        if (reason == Player.DISCONTINUITY_REASON_PERIOD_TRANSITION
                 && player.getRepeatMode() == Player.REPEAT_MODE_ONE) {
             eventEmitter.end();
         }

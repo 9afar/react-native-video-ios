@@ -1,5 +1,8 @@
 ## Changelog
 
+### next
+* Upgrade ExoPlayer to from 2.9.3 to 2.10.3
+
 ### Version 5.0.1
 * Fix AndroidX Support bad merge
 

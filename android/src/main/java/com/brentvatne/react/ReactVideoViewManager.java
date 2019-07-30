@@ -26,6 +26,10 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoView> {
     public static final String PROP_SRC_MAINVER = "mainVer";
     public static final String PROP_SRC_PATCHVER = "patchVer";
     public static final String PROP_SRC_IS_ASSET = "isAsset";
+    public static final String PROP_DRM = "drm";
+    public static final String PROP_DRM_TYPE = "type";
+    public static final String PROP_DRM_LICENSESERVER = "licenseServer";
+    public static final String PROP_DRM_HEADERS = "headers";
     public static final String PROP_RESIZE_MODE = "resizeMode";
     public static final String PROP_REPEAT = "repeat";
     public static final String PROP_PAUSED = "paused";
@@ -96,6 +100,31 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoView> {
                 "ScaleAspectFit", Integer.toString(ScalableType.FIT_CENTER.ordinal()),
                 "ScaleAspectFill", Integer.toString(ScalableType.CENTER_CROP.ordinal())
         );
+    }
+
+    @ReactProp(name = PROP_DRM)
+    public void setDRM(final ReactExoplayerView videoView, @Nullable ReadableMap drm) {
+        if (drm != null && drm.hasKey(PROP_DRM_TYPE)) {
+            String drmType = drm.hasKey(PROP_DRM_TYPE) ? drm.getString(PROP_DRM_TYPE) : null;
+            String drmLicenseServer = drm.hasKey(PROP_DRM_LICENSESERVER) ? drm.getString(PROP_DRM_LICENSESERVER) : null;
+            ReadableMap drmHeaders = drm.hasKey(PROP_DRM_HEADERS) ? drm.getMap(PROP_DRM_HEADERS) : null;
+            if (drmType != null && drmLicenseServer != null && Util.getDrmUuid(drmType) != null) {
+                UUID drmUUID = Util.getDrmUuid(drmType);
+                videoView.setDrmType(drmUUID);
+                videoView.setDrmLicenseUrl(drmLicenseServer);
+                if (drmHeaders != null) {
+                    ArrayList<String> drmKeyRequestPropertiesList = new ArrayList<>();
+                    ReadableMapKeySetIterator itr = drmHeaders.keySetIterator();
+                    while (itr.hasNextKey()) {
+                        String key = itr.nextKey();
+                        drmKeyRequestPropertiesList.add(key);
+                        drmKeyRequestPropertiesList.add(drmHeaders.getString(key));
+                    }
+                    videoView.setDrmLicenseHeader(drmKeyRequestPropertiesList.toArray(new String[0]));
+                }
+                videoView.setUseTextureView(false);
+            }
+        }
     }
 
     @ReactProp(name = PROP_SRC)

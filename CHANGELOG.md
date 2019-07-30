@@ -2,6 +2,23 @@
 
 ### next
 * Basic support for DRM on iOS and Android [#1445](https://github.com/react-native-community/react-native-video/pull/1445)
+* Upgrade ExoPlayer to from 2.9.3 to 2.10.3
+
+### Version 5.0.1
+* Fix AndroidX Support bad merge
+
+### Version 5.0.0 [Deprecated]
+* AndroidX Support
+
+### Version 4.4.4
+* Handle racing conditions when props are setted on exoplayer
+
+### Version 4.4.3
+* Fix mute/unmute when controls are present (iOS) [#1654](https://github.com/react-native-community/react-native-video/pull/1654)
+* Fix Android videos being able to play with background music/audio from other apps.
+* Fixed memory leak on iOS when using `controls` [#1647](https://github.com/react-native-community/react-native-video/pull/1647)
+* (Android) Update gradle and target SDK [#1629](https://github.com/react-native-community/react-native-video/pull/1629)
+* Fix iOS stressed mount/unmount crash [#1646](https://github.com/react-native-community/react-native-video/pull/1646)
 
 ### Version 4.4.2
 * Change compileOnly to implementation on gradle (for newer gradle versions and react-native 0.59 support) [#1592](https://github.com/react-native-community/react-native-video/pull/1592)

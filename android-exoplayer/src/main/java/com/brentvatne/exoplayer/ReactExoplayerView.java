@@ -281,6 +281,7 @@ class ReactExoplayerView extends FrameLayout implements
      * Toggling the visibility of the player control view 
      */
     private void togglePlayerControlVisibility() {
+        if(player == null) return;
         reLayout(playerControlView);
         if (playerControlView.isVisible()) {
             playerControlView.hide();
@@ -326,10 +327,15 @@ class ReactExoplayerView extends FrameLayout implements
      * Adding Player control to the frame layout
      */
     private void addPlayerControl() {
+        if(player == null) return;
         LayoutParams layoutParams = new LayoutParams(
                 LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT);
         playerControlView.setLayoutParams(layoutParams);
+        int indexOfPC = indexOfChild(playerControlView);
+        if (indexOfPC != -1) {
+            removeViewAt(indexOfPC);
+        }
         addView(playerControlView, 1, layoutParams);
     }
 
@@ -346,58 +352,73 @@ class ReactExoplayerView extends FrameLayout implements
         view.layout(view.getLeft(), view.getTop(), view.getMeasuredWidth(), view.getMeasuredHeight());
     }
 
+    private DrmSessionManager<FrameworkMediaCrypto> buildDrmSessionManager(UUID uuid,
+                                                                           String licenseUrl, String[] keyRequestPropertiesArray) throws UnsupportedDrmException {
+        if (Util.SDK_INT < 18) {
+            return null;
+        }
+        HttpMediaDrmCallback drmCallback = new HttpMediaDrmCallback(licenseUrl,
+                buildHttpDataSourceFactory(false));
+        if (keyRequestPropertiesArray != null) {
+            for (int i = 0; i < keyRequestPropertiesArray.length - 1; i += 2) {
+                drmCallback.setKeyRequestProperty(keyRequestPropertiesArray[i],
+                        keyRequestPropertiesArray[i + 1]);
+            }
+        }
+        DefaultDrmSessionManager DDSM =  new DefaultDrmSessionManager<>(uuid, FrameworkMediaDrm.newInstance(uuid), drmCallback, null);
+        DDSM.addListener(mainHandler, this);
+
+        return DDSM;
+    }
+
+    /**
+     * Returns a new HttpDataSource factory.
+     *
+     * @param useBandwidthMeter Whether to set {@link #BANDWIDTH_METER} as a listener to the new
+     *     DataSource factory.
+     * @return A new HttpDataSource factory.
+     */
+    private HttpDataSource.Factory buildHttpDataSourceFactory(boolean useBandwidthMeter) {
+        return new DefaultHttpDataSourceFactory("sctv", useBandwidthMeter ? BANDWIDTH_METER : null);
+    }
+
+
     private void initializePlayer() {
         ReactExoplayerView self = this;
-
+        // This ensures all props have been setted, to avoid async racing conditions.
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 if (player == null) {
-                    TrackSelection.Factory videoTrackSelectionFactory = new AdaptiveTrackSelection.Factory(BANDWIDTH_METER);
+                    TrackSelection.Factory videoTrackSelectionFactory = new AdaptiveTrackSelection.Factory();
                     trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
                     trackSelector.setParameters(trackSelector.buildUponParameters()
-                            .setMaxVideoBitrate(maxBitRate == 0 ? Integer.MAX_VALUE : maxBitRate));
+                                    .setMaxVideoBitrate(maxBitRate == 0 ? Integer.MAX_VALUE : maxBitRate));
 
-            DefaultAllocator allocator = new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE);
-            DefaultLoadControl.Builder defaultLoadControlBuilder = new DefaultLoadControl.Builder();
-            defaultLoadControlBuilder.setAllocator(allocator);
-            defaultLoadControlBuilder.setBufferDurationsMs(minBufferMs, maxBufferMs, bufferForPlaybackMs, bufferForPlaybackAfterRebufferMs);
-            defaultLoadControlBuilder.setTargetBufferBytes(-1);
-            defaultLoadControlBuilder.setPrioritizeTimeOverSizeThresholds(true);
-            DefaultLoadControl defaultLoadControl = defaultLoadControlBuilder.createDefaultLoadControl();
-            DrmSessionManager<FrameworkMediaCrypto> drmSessionManager = null;
-                if (self.drmUUID != null) {
-                    try {
-                        drmSessionManager = buildDrmSessionManager(self.drmUUID, self.drmLicenseUrl,
-                                self.drmLicenseHeader);
-                    } catch (UnsupportedDrmException e) {
-                        int errorStringId = Util.SDK_INT < 18 ? R.string.error_drm_not_supported
-                                : (e.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
-                                ? R.string.error_drm_unsupported_scheme : R.string.error_drm_unknown);
-                        eventEmitter.error(getResources().getString(errorStringId), e);
-                        return;
+                    DefaultAllocator allocator = new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE);
+                    DefaultLoadControl.Builder defaultLoadControlBuilder = new DefaultLoadControl.Builder();
+                    defaultLoadControlBuilder.setAllocator(allocator);
+                    defaultLoadControlBuilder.setBufferDurationsMs(minBufferMs, maxBufferMs, bufferForPlaybackMs, bufferForPlaybackAfterRebufferMs);
+                    defaultLoadControlBuilder.setTargetBufferBytes(-1);
+                    defaultLoadControlBuilder.setPrioritizeTimeOverSizeThresholds(true);
+                    DefaultLoadControl defaultLoadControl = defaultLoadControlBuilder.createDefaultLoadControl();
+                    DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(getContext(), DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF);
+                    DrmSessionManager<FrameworkMediaCrypto> drmSessionManager = null;
+                    if (self.drmUUID != null) {
+                        try {
+                            drmSessionManager = buildDrmSessionManager(self.drmUUID, self.drmLicenseUrl,
+                                    self.drmLicenseHeader);
+                        } catch (UnsupportedDrmException e) {
+                            int errorStringId = Util.SDK_INT < 18 ? R.string.error_drm_not_supported
+                                    : (e.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
+                                    ? R.string.error_drm_unsupported_scheme : R.string.error_drm_unknown);
+                            eventEmitter.error(getResources().getString(errorStringId), e);
+                            return;
+                        }
                     }
-                }
-            DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(
-                getContext(),
-                drmSessionManager,
-                DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF
-            );
-            player = ExoPlayerFactory.newSimpleInstance(getContext(), renderersFactory, trackSelector, defaultLoadControl);
-            player.addListener(this);
-            player.addMetadataOutput(this);
-            exoPlayerView.setPlayer(player);
-            audioBecomingNoisyReceiver.setListener(this);
-            BANDWIDTH_METER.addEventListener(new Handler(), this);
-            setPlayWhenReady(!isPaused);
-            playerNeedsSource = true;
-
-                    DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(getContext(),
-                            drmSessionManager, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF);
-
-                    player = ExoPlayerFactory.newSimpleInstance(getContext(), renderersFactory, trackSelector, defaultLoadControl);
+                    player = ExoPlayerFactory.newSimpleInstance(getContext(), renderersFactory, trackSelector, defaultLoadControl, drmSessionManager, BANDWIDTH_METER);
                     player.addListener(self);
-                    player.setMetadataOutput(self);
+                    player.addMetadataOutput(self);
                     exoPlayerView.setPlayer(player);
                     audioBecomingNoisyReceiver.setListener(self);
                     BANDWIDTH_METER.addEventListener(new Handler(), self);
@@ -434,40 +455,10 @@ class ReactExoplayerView extends FrameLayout implements
 
                 // Initializing the playerControlView
                 initializePlayerControl();
-                handleControls();
+                setControls(controls);
+                applyModifiers();
             }
         }, 1);
-    }
-
-
-    private DrmSessionManager<FrameworkMediaCrypto> buildDrmSessionManager(UUID uuid,
-                                                                           String licenseUrl, String[] keyRequestPropertiesArray) throws UnsupportedDrmException {
-        if (Util.SDK_INT < 18) {
-            return null;
-        }
-        HttpMediaDrmCallback drmCallback = new HttpMediaDrmCallback(licenseUrl,
-                buildHttpDataSourceFactory(false));
-        if (keyRequestPropertiesArray != null) {
-            for (int i = 0; i < keyRequestPropertiesArray.length - 1; i += 2) {
-                drmCallback.setKeyRequestProperty(keyRequestPropertiesArray[i],
-                        keyRequestPropertiesArray[i + 1]);
-            }
-        }
-        DefaultDrmSessionManager DDSM =  new DefaultDrmSessionManager<>(uuid, FrameworkMediaDrm.newInstance(uuid), drmCallback, null);
-        DDSM.addListener(mainHandler, this);
-
-        return DDSM;
-    }
-
-    /**
-     * Returns a new HttpDataSource factory.
-     *
-     * @param useBandwidthMeter Whether to set {@link #BANDWIDTH_METER} as a listener to the new
-     *     DataSource factory.
-     * @return A new HttpDataSource factory.
-     */
-    private HttpDataSource.Factory buildHttpDataSourceFactory(boolean useBandwidthMeter) {
-        return new DefaultHttpDataSourceFactory("sctv", useBandwidthMeter ? BANDWIDTH_METER : null);
     }
 
     private MediaSource buildMediaSource(Uri uri, String overrideExtension) {
@@ -529,7 +520,8 @@ class ReactExoplayerView extends FrameLayout implements
 
     private MediaSource buildTextSource(String title, Uri uri, String mimeType, String language) {
         Format textFormat = Format.createTextSampleFormat(title, mimeType, Format.NO_VALUE, language);
-        return new SingleSampleMediaSource(uri, mediaDataSourceFactory, textFormat, C.TIME_UNSET);
+        return new SingleSampleMediaSource.Factory(mediaDataSourceFactory)
+                .createMediaSource(uri, textFormat, C.TIME_UNSET);
     }
 
     private void releasePlayer() {
@@ -537,8 +529,8 @@ class ReactExoplayerView extends FrameLayout implements
             updateResumePosition();
             player.release();
             player.removeMetadataOutput(this);
-            player = null;
             trackSelector = null;
+            player = null;
         }
         progressHandler.removeMessages(SHOW_PROGRESS);
         themedReactContext.removeLifecycleEventListener(this);
@@ -547,7 +539,7 @@ class ReactExoplayerView extends FrameLayout implements
     }
 
     private boolean requestAudioFocus() {
-        if (disableFocus) {
+        if (disableFocus || srcUri == null) {
             return true;
         }
         int result = audioManager.requestAudioFocus(this,
@@ -994,6 +986,10 @@ class ReactExoplayerView extends FrameLayout implements
         exoPlayerView.setResizeMode(resizeMode);
     }
 
+    private void applyModifiers() {
+        setRepeatModifier(repeat);
+    }
+
     public void setRepeatModifier(boolean repeat) {
         if (player != null) {
             if (repeat) {
@@ -1006,6 +1002,7 @@ class ReactExoplayerView extends FrameLayout implements
     }
 
     public void setSelectedTrack(int trackType, String type, Dynamic value) {
+        if (player == null) return;
         int rendererIndex = getTrackRendererIndex(trackType);
         if (rendererIndex == C.INDEX_UNSET) {
             return;
@@ -1292,17 +1289,13 @@ class ReactExoplayerView extends FrameLayout implements
      */
     public void setControls(boolean controls) {
         this.controls = controls;
-        if (playerControlView != null) {
-            this.handleControls();
-        }
-    }
-
-    private void handleControls() {
-        if (exoPlayerView != null) {
-            if (this.controls && !(getChildAt(1) instanceof PlayerControlView)) {
-                addPlayerControl();
-            } else if (!this.controls && getChildAt(1) instanceof PlayerControlView) {
-                removeViewAt(1);
+        if (player == null || exoPlayerView == null) return;
+        if (controls) {
+            addPlayerControl();
+        } else {
+            int indexOfPC = indexOfChild(playerControlView);
+            if (indexOfPC != -1) {
+                removeViewAt(indexOfPC);
             }
         }
     }

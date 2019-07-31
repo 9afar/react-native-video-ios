@@ -16,4 +16,11 @@
   <string name="error_drm_unsupported_scheme">This device does not support the required DRM scheme</string>
 
   <string name="error_drm_unknown">An unknown DRM error occurred</string>
+
+  <string name="download_start_error">Failed to start download</string>
+
+  <!-- Description for a button that downloads a piece of media content onto the device. [CHAR LIMIT=20] -->
+  <string name="exo_download_description">Download</string>
+
+  
 </resources>

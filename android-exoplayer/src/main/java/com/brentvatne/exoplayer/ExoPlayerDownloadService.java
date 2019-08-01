@@ -17,33 +17,54 @@ package com.brentvatne.exoplayer;
 
 import android.app.Notification;
 import com.google.android.exoplayer2.offline.Download;
+import com.google.android.exoplayer2.offline.DownloadHelper;
 import com.google.android.exoplayer2.offline.DownloadManager;
 import com.google.android.exoplayer2.offline.DownloadService;
 import com.google.android.exoplayer2.scheduler.PlatformScheduler;
 import com.google.android.exoplayer2.ui.DownloadNotificationHelper;
 import com.google.android.exoplayer2.util.NotificationUtil;
 import com.google.android.exoplayer2.util.Util;
+
+import java.io.IOException;
 import java.util.List;
+import com.brentvatne.react.R;
+import android.content.Intent;
+import android.os.IBinder;
 
 /** A service for downloading media. */
 public class ExoPlayerDownloadService extends DownloadService {
 
-  private static final String CHANNEL_ID = "download_channel";
-  private static final int JOB_ID = 1;
-  private static final int FOREGROUND_NOTIFICATION_ID = 1;
+    private static volatile ExoPlayerDownloadService instance;
 
-  private static int nextNotificationId = FOREGROUND_NOTIFICATION_ID + 1;
+    private static final String CHANNEL_ID = "download_channel";
+    private static final int JOB_ID = 1;
+    private static final int FOREGROUND_NOTIFICATION_ID = 1;
 
-  private DownloadNotificationHelper notificationHelper;
+    private static int nextNotificationId = FOREGROUND_NOTIFICATION_ID + 1;
 
-  public DemoDownloadService() {
-    super(
-        FOREGROUND_NOTIFICATION_ID,
-        DEFAULT_FOREGROUND_NOTIFICATION_UPDATE_INTERVAL,
-        CHANNEL_ID,
-        R.string.exo_download_notification_channel_name);
-    nextNotificationId = FOREGROUND_NOTIFICATION_ID + 1;
+    private static DownloadManager downloadManager;
+
+    private DownloadNotificationHelper notificationHelper;
+
+
+    public ExoPlayerDownloadService() {
+        super(
+            FOREGROUND_NOTIFICATION_ID,
+            DEFAULT_FOREGROUND_NOTIFICATION_UPDATE_INTERVAL,
+            CHANNEL_ID,
+            R.string.exo_download_notification_channel_name);
+        instance = this;
+        nextNotificationId = FOREGROUND_NOTIFICATION_ID + 1;
   }
+
+  public static void setDownloadManager(DownloadManager downloadManagerInstance) {
+    downloadManager = downloadManagerInstance;
+  }
+
+  public static ExoPlayerDownloadService getInstance() {
+        return instance;
+  }
+
 
   @Override
   public void onCreate() {
@@ -53,18 +74,24 @@ public class ExoPlayerDownloadService extends DownloadService {
 
   @Override
   protected DownloadManager getDownloadManager() {
-    return ((DemoApplication) getApplication()).getDownloadManager();
+    return downloadManager;
   }
 
   @Override
   protected PlatformScheduler getScheduler() {
-    return Util.SDK_INT >= 21 ? new PlatformScheduler(this, JOB_ID) : null;
+    try {
+        return Util.SDK_INT >= 21 ? new PlatformScheduler(this, JOB_ID) : null;
+    } catch(RuntimeException e) {
+        e.printStackTrace();
+        return null;
+    }
+
   }
 
   @Override
   protected Notification getForegroundNotification(List<Download> downloads) {
     return notificationHelper.buildProgressNotification(
-        R.drawable.ic_download, /* contentIntent= */ null, /* message= */ null, downloads);
+        R.drawable.exo_notification_small_icon /*R.drawable.ic_download*/, /* contentIntent= */ null, /* message= */ null, downloads);
   }
 
   @Override
@@ -73,13 +100,13 @@ public class ExoPlayerDownloadService extends DownloadService {
     if (download.state == Download.STATE_COMPLETED) {
       notification =
           notificationHelper.buildDownloadCompletedNotification(
-              R.drawable.ic_download_done,
+              R.drawable.exo_notification_small_icon,
               /* contentIntent= */ null,
               Util.fromUtf8Bytes(download.request.data));
     } else if (download.state == Download.STATE_FAILED) {
       notification =
           notificationHelper.buildDownloadFailedNotification(
-              R.drawable.ic_download_done,
+              R.drawable.exo_notification_small_icon,
               /* contentIntent= */ null,
               Util.fromUtf8Bytes(download.request.data));
     } else {

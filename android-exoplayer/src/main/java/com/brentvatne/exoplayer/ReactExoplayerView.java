@@ -66,6 +66,8 @@ import com.google.android.exoplayer2.trackselection.FixedTrackSelection;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.google.android.exoplayer2.upstream.cache.Cache;
+import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultAllocator;
 import com.google.android.exoplayer2.upstream.BandwidthMeter;
@@ -160,6 +162,7 @@ class ReactExoplayerView extends FrameLayout implements
     private String drmLicenseUrl = null;
     private String[] drmLicenseHeader = null;
     private boolean controls;
+    private boolean offline;
     // \ End props
 
     // React
@@ -464,30 +467,40 @@ class ReactExoplayerView extends FrameLayout implements
     private MediaSource buildMediaSource(Uri uri, String overrideExtension) {
         int type = Util.inferContentType(!TextUtils.isEmpty(overrideExtension) ? "." + overrideExtension
                 : uri.getLastPathSegment());
+        DataSource.Factory dataSourceFactory = mediaDataSourceFactory;
+        if (offline) {
+            Cache downloadCache = DataSourceUtil.getDownloadCache();
+            if (downloadCache != null) {
+                dataSourceFactory = new CacheDataSourceFactory(
+                        downloadCache,
+                        dataSourceFactory
+                );
+            }
+        }
         switch (type) {
             case C.TYPE_SS:
                 return new SsMediaSource.Factory(
-                        new DefaultSsChunkSource.Factory(mediaDataSourceFactory),
-                        buildDataSourceFactory(false)
+                        new DefaultSsChunkSource.Factory(dataSourceFactory),
+                        dataSourceFactory
                 ).setLoadErrorHandlingPolicy(
                         new DefaultLoadErrorHandlingPolicy(minLoadRetryCount)
                 ).createMediaSource(uri);
             case C.TYPE_DASH:
                 return new DashMediaSource.Factory(
-                        new DefaultDashChunkSource.Factory(mediaDataSourceFactory),
-                        buildDataSourceFactory(false)
+                        new DefaultDashChunkSource.Factory(dataSourceFactory),
+                        dataSourceFactory
                 ).setLoadErrorHandlingPolicy(
                     new DefaultLoadErrorHandlingPolicy(minLoadRetryCount)
                 ).createMediaSource(uri);
             case C.TYPE_HLS:
                 return new HlsMediaSource.Factory(
-                        mediaDataSourceFactory
+                        dataSourceFactory
                 ).setLoadErrorHandlingPolicy(
                         new DefaultLoadErrorHandlingPolicy(minLoadRetryCount)
                 ).createMediaSource(uri);
             case C.TYPE_OTHER:
                 return new ExtractorMediaSource.Factory(
-                        mediaDataSourceFactory
+                        dataSourceFactory
                 ).setLoadErrorHandlingPolicy(
                         new DefaultLoadErrorHandlingPolicy(minLoadRetryCount)
                 ).createMediaSource(uri);
@@ -1259,6 +1272,8 @@ class ReactExoplayerView extends FrameLayout implements
     public void setDrmLicenseHeader(String[] header){
         this.drmLicenseHeader = header;
     }
+
+    public void setOffline(Boolean offline) { this.offline = offline; }
 
 
     @Override

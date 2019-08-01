@@ -22,5 +22,7 @@
   <!-- Description for a button that downloads a piece of media content onto the device. [CHAR LIMIT=20] -->
   <string name="exo_download_description">Download</string>
 
+  <string name="exo_download_notification_channel_name">Downloads</string>
+
   
 </resources>

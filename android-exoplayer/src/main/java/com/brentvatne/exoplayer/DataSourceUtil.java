@@ -72,6 +72,10 @@ public class DataSourceUtil {
         DataSourceUtil.defaultDataSourceFactory = factory;
     }
 
+    public static void setDownloadCache(Cache cache) {
+        downloadCache = cache;
+    }
+
     public static Cache getDownloadCache() {
         return downloadCache;
     }

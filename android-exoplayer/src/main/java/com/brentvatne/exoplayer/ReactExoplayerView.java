@@ -89,6 +89,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 @SuppressLint("ViewConstructor")
+@SuppressWarnings("unchecked")
 class ReactExoplayerView extends FrameLayout implements
         LifecycleEventListener,
         Player.EventListener,

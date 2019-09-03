@@ -34,6 +34,7 @@ import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.RenderersFactory;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.drm.DefaultDrmSessionEventListener;
@@ -43,6 +44,9 @@ import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.HttpMediaDrmCallback;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
+import com.google.android.exoplayer2.offline.Download;
+import com.google.android.exoplayer2.offline.DownloadHelper;
+import com.google.android.exoplayer2.offline.DownloadRequest;
 import com.google.android.exoplayer2.upstream.DefaultLoadErrorHandlingPolicy;
 import com.google.android.exoplayer2.mediacodec.MediaCodecRenderer;
 import com.google.android.exoplayer2.mediacodec.MediaCodecUtil;
@@ -77,6 +81,7 @@ import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.exoplayer2.ui.PlayerControlView;
+import com.twentyfouri.media.offline.ExoPlayerDownloadService;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -470,12 +475,16 @@ class ReactExoplayerView extends FrameLayout implements
                 : uri.getLastPathSegment());
         DataSource.Factory dataSourceFactory = mediaDataSourceFactory;
         if (offline) {
-            Cache downloadCache = DataSourceUtil.getDownloadCache();
+            Cache downloadCache = com.twentyfouri.media.offline.ExoPlayerDownloadService.getDownloadCache();
             if (downloadCache != null) {
                 dataSourceFactory = new CacheDataSourceFactory(
                         downloadCache,
                         dataSourceFactory
                 );
+            }
+            MediaSource mediaSource = buildOfflineMediaSource(getDownloadHelper(uri, null), dataSourceFactory, uri);
+            if (mediaSource != null) {
+                return mediaSource;
             }
         }
         switch (type) {
@@ -1318,5 +1327,39 @@ class ReactExoplayerView extends FrameLayout implements
 
     public void save(ReadableMap options, Promise promise) {
         promise.resolve("ok");
+    }
+
+    private DownloadHelper getDownloadHelper(Uri uri, String typeOverride) throws IllegalStateException {
+        if (typeOverride != null && typeOverride.isEmpty()) {
+            typeOverride = null;
+        }
+        int type = Util.inferContentType(uri, typeOverride);
+        RenderersFactory renderersFactory =
+                new DefaultRenderersFactory(getContext())
+                        .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF);
+        DataSource.Factory dataSourceFactory = buildDataSourceFactory(false);
+        DownloadHelper downloadHelper;
+        switch (type) {
+            case C.TYPE_DASH:
+                downloadHelper = DownloadHelper.forDash(uri, dataSourceFactory, renderersFactory);
+                break;
+            case C.TYPE_SS:
+                downloadHelper = DownloadHelper.forSmoothStreaming(uri, dataSourceFactory, renderersFactory);
+                break;
+            case C.TYPE_HLS:
+                downloadHelper = DownloadHelper.forHls(uri, dataSourceFactory, renderersFactory);
+                break;
+            case C.TYPE_OTHER:
+                downloadHelper = DownloadHelper.forProgressive(uri);
+                break;
+            default:
+                throw new IllegalStateException("Unsupported type: " + type);
+        }
+        return downloadHelper;
+    }
+
+    private MediaSource buildOfflineMediaSource(DownloadHelper helper, DataSource.Factory dataFactory, Uri uri) {
+        DownloadRequest request = (DownloadRequest)ExoPlayerDownloadService.downloadRequests.get(uri.toString());
+        return helper.createMediaSource(request, dataFactory);
     }
 }

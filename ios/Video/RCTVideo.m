@@ -1410,6 +1410,7 @@ static int const RCTVideoUnset = -1;
     _playerLayerObserverSet = NO;
   }
   _playerLayer = nil;
+  _player = nil;
 }
 
 #pragma mark - RCTVideoPlayerViewControllerDelegate

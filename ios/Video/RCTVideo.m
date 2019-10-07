@@ -1615,6 +1615,7 @@ static int const RCTVideoUnset = -1;
 
 - (void)setLicenseResult:(NSString *)license {
   NSData *respondData = [self base64DataFromBase64String:license];
+  NSLog(@"==== respond data %@", license);
   if (_loadingRequest != nil && respondData != nil) {
     AVAssetResourceLoadingDataRequest *dataRequest = [_loadingRequest dataRequest];
     [dataRequest respondWithData:respondData];
@@ -1702,29 +1703,35 @@ didCancelLoadingRequest:(AVAssetResourceLoadingRequest *)loadingRequest {
   }
   _loadingRequest = loadingRequest;
   NSURL *url = loadingRequest.request.URL;
-  NSString *contentId = url.host;
+  NSString *assetId = url.host;
   if (self->_drm != nil) {
-    NSString *contentIdOverride = (NSString *)[self->_drm objectForKey:@"contentId"];
-    if (contentIdOverride != nil) {
-      contentId = contentIdOverride;
+    NSString *assetIdOverride = (NSString *)[self->_drm objectForKey:@"assetId"];
+    if (assetIdOverride != nil) {
+      assetId = assetIdOverride;
     }
     NSString *drmType = (NSString *)[self->_drm objectForKey:@"type"];
     if ([drmType isEqualToString:@"fairplay"]) {
       NSString *certificateStringUrl = (NSString *)[self->_drm objectForKey:@"certificateUrl"];
       if (certificateStringUrl != nil) {
-        NSURL *certificateURL = [NSURL URLWithString:[certificateStringUrl stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+        NSURL *certificateURL = [NSURL URLWithString:[certificateStringUrl stringByAddingPercentEscapesUsingEncoding:NSDataBase64DecodingIgnoreUnknownCharacters]];
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-          NSData *certificateData = [NSData dataWithContentsOfURL:certificateURL];
-          if ([self->_drm objectForKey:@"base64Certificate"]) {
-            certificateData = [[NSData alloc] initWithBase64EncodedData:certificateData options:NSDataBase64DecodingIgnoreUnknownCharacters];
-          }
-          
+          // NSData *certificateData = [NSData dataWithContentsOfURL:certificateURL];
+          // if ([self->_drm objectForKey:@"base64Certificate"]) {
+          //   certificateData = [[NSData alloc] initWithBase64EncodedData:certificateData options:NSDataBase64DecodingIgnoreUnknownCharacters];
+          // }
+          NSURLResponse *response = nil;
+          NSError *error = nil;
+          NSData *certificateData = [NSURLConnection sendSynchronousRequest:[NSURLRequest requestWithURL:certificateURL] returningResponse:&response error:&error];
+
           if (certificateData != nil) {
-            NSData *contentIdData = [contentId dataUsingEncoding:NSUTF8StringEncoding];
+            NSData *assetIDData = [assetId dataUsingEncoding:NSDataBase64DecodingIgnoreUnknownCharacters];
             AVAssetResourceLoadingDataRequest *dataRequest = [loadingRequest dataRequest];
+
             if (dataRequest != nil) {
               NSError *spcError = nil;
-              NSData *spcData = [loadingRequest streamingContentKeyRequestDataForApp:certificateData contentIdentifier:contentIdData options:nil error:&spcError];
+              
+              NSData *spcData = [_loadingRequest streamingContentKeyRequestDataForApp:certificateData contentIdentifier:assetIDData options:nil error:&spcError];
+              
               // Request CKC to the server
               NSString *licenseServer = (NSString *)[self->_drm objectForKey:@"licenseServer"];
               if (spcError != nil) {
@@ -1733,7 +1740,7 @@ didCancelLoadingRequest:(AVAssetResourceLoadingRequest *)loadingRequest {
               }
               if (spcData != nil) {
                 if(self.onGetLicense) {
-                  NSString *spcStr = [[NSString alloc] initWithData:spcData encoding:NSASCIIStringEncoding];
+                  NSString *spcStr = [[NSString alloc] initWithData:spcData encoding:NSDataBase64DecodingIgnoreUnknownCharacters];
                   self->_requestingCertificate = YES;
                   self.onGetLicense(@{@"spc": spcStr,
                                       @"target": self.reactTag});
@@ -1750,7 +1757,7 @@ didCancelLoadingRequest:(AVAssetResourceLoadingRequest *)loadingRequest {
                     }
                   }
                   //
-                  
+
                   [request setHTTPBody: spcData];
                   NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
                   NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:nil];
@@ -1874,8 +1881,12 @@ didCancelLoadingRequest:(AVAssetResourceLoadingRequest *)loadingRequest {
 
 - (NSData *)base64DataFromBase64String: (NSString *)base64String {
   if (base64String != nil) {
+    // NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:base64String options:0];
+    // NSString *decodedString = [[NSString alloc] initWithData:decodedData encoding:NSASCIIStringEncoding];
+    // NSLog(@"%@", decodedString); // foo 
+    // return decodedString;
     // NSData from the Base64 encoded str
-    NSData *base64Data = [[NSData alloc] initWithBase64EncodedString:base64String options:NSASCIIStringEncoding];
+    NSData *base64Data = [[NSData alloc] initWithBase64EncodedString:base64String options:NSDataBase64DecodingIgnoreUnknownCharacters];
     return base64Data;
   }
   return nil;
@@ -1909,6 +1920,19 @@ didCancelLoadingRequest:(AVAssetResourceLoadingRequest *)loadingRequest {
 
 - (void)pictureInPictureController:(AVPictureInPictureController *)pictureInPictureController failedToStartPictureInPictureWithError:(NSError *)error {
   
+}
+
+- (NSString*)encodeStringTo64:(NSString*)fromString
+{  
+    NSData *plainData = [fromString dataUsingEncoding:NSDataBase64DecodingIgnoreUnknownCharacters];
+    NSString *base64String;
+    if ([plainData respondsToSelector:@selector(base64EncodedStringWithOptions:)]) {
+        base64String = [plainData base64EncodedStringWithOptions:kNilOptions];  // iOS 7+
+    } else {
+        base64String = [plainData base64Encoding];                              // pre iOS7
+    }
+
+    return base64String;
 }
 
 - (void)pictureInPictureController:(AVPictureInPictureController *)pictureInPictureController restoreUserInterfaceForPictureInPictureStopWithCompletionHandler:(void (^)(BOOL))completionHandler {

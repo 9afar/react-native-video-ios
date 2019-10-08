@@ -257,6 +257,50 @@ export default class Video extends Component {
     return NativeModules.UIManager.getViewManagerConfig(viewManagerName);
   };
 
+  requestAds = (url) => {
+    if (Platform.OS === 'android') {
+      UIManager.dispatchViewManagerCommand(this.videoHandle, 0, [url]);
+    } else {
+      NativeModules.VideoManager.requestAds(url);
+    }
+  }
+
+  startAds = () => {
+    if (Platform.OS === 'android') {
+      UIManager.dispatchViewManagerCommand(this.videoHandle, 1, null);
+    } else {
+      NativeModules.VideoManager.startAds();
+    }
+  }
+
+  _onAdsComplete = (event) => {
+    if (this.props.onBuffer) {
+      this.props.onAdsComplete(event.nativeEvent);
+    }
+  };
+
+  _onAdError = (event) => {
+    if (this.props.onBuffer) {
+      this.props.onAdError(event.nativeEvent);
+    }
+  };
+
+  _onAdsLoaded = (event) => {
+    if (this.props.onBuffer) {
+      this.props.onAdsLoaded(event.nativeEvent);
+    }
+  };
+
+  _onAdStarted = (event) => {
+    if (this.props.onBuffer) {
+      this.props.onAdStarted(event.nativeEvent);
+    }
+  };
+
+  _onAdCuePointsFilled = (event) => {
+    this.props.onAdCuePointsFilled(event.nativeEvent);
+  }
+
   render() {
     const resizeMode = this.props.resizeMode;
     const source = resolveAssetSource(this.props.source) || {};
@@ -389,6 +433,11 @@ Video.propTypes = {
   onVideoFullscreenPlayerDidPresent: PropTypes.func,
   onVideoFullscreenPlayerWillDismiss: PropTypes.func,
   onVideoFullscreenPlayerDidDismiss: PropTypes.func,
+  onAdError: PropTypes.func,
+  onAdsComplete: PropTypes.func,
+  onAdsLoaded: PropTypes.func,
+  onAdStarted: PropTypes.func,
+  onAdCuePointsFilled: PropTypes.func,
 
   /* Wrapper component */
   source: PropTypes.oneOfType([

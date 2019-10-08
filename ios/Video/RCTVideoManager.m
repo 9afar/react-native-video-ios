@@ -67,6 +67,21 @@ RCT_EXPORT_VIEW_PROPERTY(onPlaybackResume, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onPlaybackRateChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onVideoExternalPlaybackChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onGetLicense, RCTDirectEventBlock);
+
+RCT_EXPORT_VIEW_PROPERTY(onAdsLoaded, RCTBubblingEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onAdStarted, RCTBubblingEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onAdsComplete, RCTBubblingEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onAdError, RCTBubblingEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onAdCuePointsFilled, RCTBubblingEventBlock);
+
+RCT_EXPORT_METHOD(requestAds:(NSString *)url){
+    [_video requestAds:url];
+}
+
+RCT_EXPORT_METHOD(startAds){
+    [_video startAds];
+}
+
 RCT_REMAP_METHOD(save,
         options:(NSDictionary *)options
         reactTag:(nonnull NSNumber *)reactTag

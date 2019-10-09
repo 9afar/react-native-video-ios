@@ -4,6 +4,7 @@
 #import <React/RCTEventDispatcher.h>
 #import <React/UIView+React.h>
 @import GoogleInteractiveMediaAds;
+@import YouboraAVPlayerAdapter;
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
 
@@ -92,6 +93,8 @@ static int const RCTVideoUnset = -1;
   NSString *_filterName;
   BOOL _filterEnabled;
   UIViewController * _presentingViewController;
+  
+  NSDictionary *_shahidYouboraOptions;
 
   BOOL adCuePointsCheck: true;
 
@@ -159,7 +162,22 @@ static int const RCTVideoUnset = -1;
                                                  name:AVAudioSessionRouteChangeNotification
                                                object:nil];
   }
-  
+
+  YBOptions *youboraOptions = [YBOptions new];
+  youboraOptions.accountCode = _shahidYouboraOptions.accountCode;
+  youboraOptions.contentTitle = _shahidYouboraOptions.contentTitle;
+  youboraOptions.username = _shahidYouboraOptions.username;
+  youboraOptions.contentTitle = _shahidYouboraOptions.contentTitle;
+  youboraOptions.contentTitle2 = _shahidYouboraOptions.contentTitle2;
+  youboraOptions.contentDuration = _shahidYouboraOptions.contentDuration;
+  youboraOptions.extraparam2 = _shahidYouboraOptions.extraparam2;
+  youboraOptions.contentMetadata = _shahidYouboraOptions.contentMetadata;
+  youboraOptions.contentResource = _shahidYouboraOptions.contentResource;
+  youboraOptions.isLive = _shahidYouboraOptions.isLive;
+
+  self.youboraPlugin = [[YBPlugin alloc] initWithOptions:youboraOptions];
+  adapter = [[YBAVPlayerAdapter alloc] initWithPlayer:_player];
+
   return self;
 }
 
@@ -546,6 +564,10 @@ static int const RCTVideoUnset = -1;
 
 - (void)setDrm:(NSDictionary *)drm {
   _drm = drm;
+}
+
+- (void)setShahidYouboraOptions:(NSDictionary *)youboraOptions {
+  _shahidYouboraOptions = youboraOptions;
 }
 
 - (NSURL*) urlFilePath:(NSString*) filepath {

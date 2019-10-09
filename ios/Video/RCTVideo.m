@@ -45,6 +45,7 @@ static int const RCTVideoUnset = -1;
   IMAAdsLoader * _adsLoader;
   IMAAVPlayerContentPlayhead * _contentPlayhead;
   IMAAdsManager * _adsManager;
+  IMAAdDisplayContainer * _adDisplayContainer;
   
   /* DRM */
   NSDictionary *_drm;
@@ -91,6 +92,9 @@ static int const RCTVideoUnset = -1;
   NSString *_filterName;
   BOOL _filterEnabled;
   UIViewController * _presentingViewController;
+
+  BOOL adCuePointsCheck: true;
+
 #if __has_include(<react-native-video/RCTVideoCache.h>)
   RCTVideoCache * _videoCache;
 #endif
@@ -144,6 +148,11 @@ static int const RCTVideoUnset = -1;
                                              selector:@selector(applicationWillEnterForeground:)
                                                  name:UIApplicationWillEnterForegroundNotification
                                                object:nil];
+
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(applicationDidBecomeActive:)
+                                                 name:UIApplicationDidBecomeActiveNotification
+                                               object:nil];
     
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(audioRouteChanged:)
@@ -154,18 +163,51 @@ static int const RCTVideoUnset = -1;
   return self;
 }
 
-- (void)requestAds:(NSString *) adTagUrl {
+- (void)setUpContentPlayer {
+    // Set up our content playhead and contentComplete callback.
+    _contentPlayhead = [[IMAAVPlayerContentPlayhead alloc] initWithAVPlayer:_player];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                            selector:@selector(contentDidFinishPlaying:)
+                                                name:AVPlayerItemDidPlayToEndTimeNotification
+                                              object:_player.currentItem];
+}
+
+- (void)setupAdsLoader {
+    // Re-use this IMAAdsLoader instance for the entire lifecycle of your app.
     _adsLoader = [[IMAAdsLoader alloc] initWithSettings:nil];
+    // NOTE: This line will cause a warning until the next step, "Get the Ads Manager".
     _adsLoader.delegate = self;
+}
+
+- (void)requestAds:(NSString *) adTagUrl {
+    NSLog(@"==== %@", adTagUrl);
     // Create an ad display container for ad rendering.
-    IMAAdDisplayContainer *adDisplayContainer =
+    _adDisplayContainer =
     [[IMAAdDisplayContainer alloc] initWithAdContainer:self companionSlots:nil];
     // Create an ad request with our ad tag, display container, and optional user context.
     IMAAdsRequest *request = [[IMAAdsRequest alloc] initWithAdTagUrl:adTagUrl
-                                                  adDisplayContainer:adDisplayContainer
+                                                  adDisplayContainer:_adDisplayContainer
                                                      contentPlayhead:_contentPlayhead
                                                          userContext:nil];
     [_adsLoader requestAdsWithRequest:request];
+}
+
+- (void)pauseAd
+{
+    [_adsManager pause];
+}
+
+- (void)resumeAd
+{
+    [_adsManager resume];
+}
+
+- (void)destroyAd
+{
+  NSLog(@"==== destroy");
+    [_adsManager destroy];
+    _adsManager = nil;
+    _adsLoader = nil;
 }
 
 - (void)adsLoader:(IMAAdsLoader *)loader adsLoadedWithData:(IMAAdsLoadedData *)adsLoadedData {
@@ -176,7 +218,7 @@ static int const RCTVideoUnset = -1;
     
     // Create ads rendering settings and tell the SDK to use the in-app browser.
     IMAAdsRenderingSettings *adsRenderingSettings = [[IMAAdsRenderingSettings alloc] init];
-    adsRenderingSettings.webOpenerPresentingController = self;
+    // adsRenderingSettings.webOpenerPresentingController = self;
     
     // Initialize the ads manager.
     [_adsManager initializeWithAdsRenderingSettings:adsRenderingSettings];
@@ -192,12 +234,16 @@ static int const RCTVideoUnset = -1;
 }
 
 - (void)adsManager:(IMAAdsManager *)adsManager didReceiveAdEvent:(IMAAdEvent *)event {
+    if (adCuePointsCheck && self.onAdCuePointsFilled != nil) {
+      self.onAdCuePointsFilled(@{@"target": self.reactTag, @"cuePointsFilled": _adsManager.adCuePoints});
+    }
     if (event.type == kIMAAdEvent_LOADED && self.onAdsLoaded) {
         self.onAdsLoaded(@{@"target": self.reactTag});
-    } else if (event.type == kIMAAdEvent_AD_BREAK_STARTED && self.onAdStarted) {
-        self.onAdStarted(@{@"podIndex": event.ad.adPodInfo.podIndex, @"target": self.reactTag});
-    } else if (event.type == IMAAdEventType.COMPLETE && self.onAdsComplete) {
-        self.onAdStarted(@{@"podIndex": event.ad.adPodInfo.podIndex, @"target": self.reactTag});
+        [_adsManager start];
+    } else if (event.type == kIMAAdEvent_STARTED && self.onAdStarted) {
+        self.onAdStarted(@{@"podIndex": [NSNumber numberWithInteger: event.ad.adPodInfo.podIndex], @"target": self.reactTag});
+    } else if (event.type == kIMAAdEvent_COMPLETE && self.onAdsComplete) {
+        self.onAdsComplete(@{@"podIndex": [NSNumber numberWithInteger: event.ad.adPodInfo.podIndex], @"target": self.reactTag});
     } else if (event.type == kIMAAdEvent_ALL_ADS_COMPLETED) {
         if (_adsManager) {
             [_adsManager destroy];
@@ -205,12 +251,6 @@ static int const RCTVideoUnset = -1;
         }
         self.onAdsComplete(@{@"target": self.reactTag});
     }
-}
-
-- (void)startAds
-{
-    self.onAdCuePointsFilled(@{@"target": self.reactTag, @"cuePointsFilled": _adsManager.adCuePoints});
-    [_adsManager start];
 }
 
 - (void)adsManager:(IMAAdsManager *)adsManager didReceiveAdError:(IMAAdError *)error {
@@ -317,6 +357,16 @@ static int const RCTVideoUnset = -1;
     // Needed to play sound in background. See https://developer.apple.com/library/ios/qa/qa1668/_index.html
     [_playerLayer setPlayer:nil];
     [_playerViewController setPlayer:nil];
+  }
+  if(_adsManager != nil) {
+      [_adsManager pause];
+  }
+}
+
+- (void)applicationDidBecomeActive:(NSNotification *)notification
+{
+  if (_adsManager != nil) {
+    [_adsManager resume];
   }
 }
 
@@ -487,6 +537,8 @@ static int const RCTVideoUnset = -1;
                                 @"target": self.reactTag
                                 });
       }
+      [self setUpContentPlayer];
+      [self setupAdsLoader];
     }];
   });
   _videoLoadStarted = YES;
@@ -1000,12 +1052,12 @@ static int const RCTVideoUnset = -1;
       [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:nil];
     }
     
-    if (@available(iOS 10.0, *) && !_automaticallyWaitsToMinimizeStalling) {
-      [_player playImmediatelyAtRate:_rate];
-    } else {
-      [_player play];
-      [_player setRate:_rate];
-    }
+    // if (@available(iOS 10.0, *) && !_automaticallyWaitsToMinimizeStalling) {
+    //   [_player playImmediatelyAtRate:_rate];
+    // } else {
+    //   [_player play];
+    //   [_player setRate:_rate];
+    // }
     [_player setRate:_rate];
   }
   

@@ -8,9 +8,12 @@
 
 RCT_EXPORT_MODULE();
 
+RCTVideo * _video;
+
 - (UIView *)view
 {
-  return [[RCTVideo alloc] initWithEventDispatcher:self.bridge.eventDispatcher];
+    _video = [[RCTVideo alloc] initWithEventDispatcher:self.bridge.eventDispatcher];
+    return _video;
 }
 
 - (dispatch_queue_t)methodQueue
@@ -78,8 +81,16 @@ RCT_EXPORT_METHOD(requestAds:(NSString *)url){
     [_video requestAds:url];
 }
 
-RCT_EXPORT_METHOD(startAds){
-    [_video startAds];
+RCT_EXPORT_METHOD(pauseAd){
+    [_video pauseAd];
+}
+
+RCT_EXPORT_METHOD(resumeAd){
+    [_video resumeAd];
+}
+
+RCT_EXPORT_METHOD(destroyAd){
+    [_video destroyAd];
 }
 
 RCT_REMAP_METHOD(save,

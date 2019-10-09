@@ -70,6 +70,8 @@ typedef NS_ENUM(NSInteger, RCTVideoError) {
 - (BOOL)setLicenseResultError:(NSString * )error;
 
 - (void)requestAds:(NSString *)adTagUrl;
-- (void)startAds;
+- (void)pauseAd;
+- (void)resumeAd;
+- (void)destroyAd;
 
 @end

@@ -265,12 +265,16 @@ export default class Video extends Component {
     }
   }
 
-  startAds = () => {
-    if (Platform.OS === 'android') {
-      UIManager.dispatchViewManagerCommand(this.videoHandle, 1, null);
-    } else {
-      NativeModules.VideoManager.startAds();
-    }
+  pauseAd = () => {
+    NativeModules.VideoManager.pauseAd();
+  }
+
+  resumeAd = () => {
+    NativeModules.VideoManager.resumeAd();
+  }
+
+  destroyAd = () => {
+    NativeModules.VideoManager.destroyAd();
   }
 
   _onAdsComplete = (event) => {

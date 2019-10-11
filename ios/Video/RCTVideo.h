@@ -5,7 +5,6 @@
 #import "RCTVideoPlayerViewControllerDelegate.h"
 #import <React/RCTComponent.h>
 #import <React/RCTBridgeModule.h>
-// @import YouboraAVPlayerAdapter;
 
 #if __has_include(<react-native-video/RCTVideoCache.h>)
 #import <react-native-video/RCTVideoCache.h>
@@ -50,9 +49,6 @@
 @property (nonatomic, copy) RCTBubblingEventBlock onAdError;
 @property (nonatomic, copy) RCTBubblingEventBlock onAdCuePointsFilled;
 
-// @property (nonatomic, strong) YBPlugin * youboraPlugin;
-// @property (nonatomic, strong) YBAVPlayerAdapter * adapter;
-
 typedef NS_ENUM(NSInteger, RCTVideoError) {
     RCTVideoErrorFromJSPart,
     RCTVideoErrorLicenseRequestNotOk,
@@ -77,5 +73,6 @@ typedef NS_ENUM(NSInteger, RCTVideoError) {
 - (void)pauseAd;
 - (void)resumeAd;
 - (void)destroyAd;
+- (void)stop;
 
 @end

@@ -277,6 +277,10 @@ export default class Video extends Component {
     NativeModules.VideoManager.destroyAd();
   }
 
+  stop = () => {
+    NativeModules.VideoManager.stop();
+  }
+
   _onAdsComplete = (event) => {
     if (this.props.onBuffer) {
       this.props.onAdsComplete(event.nativeEvent);

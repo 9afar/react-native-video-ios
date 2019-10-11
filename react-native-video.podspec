@@ -17,6 +17,8 @@ Pod::Spec.new do |s|
 
   s.subspec "Video" do |ss|
     ss.dependency "GoogleAds-IMA-iOS-SDK", "~> 3.10.1"
+    ss.dependency "YouboraAVPlayerAdapter", "6.4.2"
+    ss.dependency "YouboraLib", "6.4.0"
     ss.source_files  = "ios/Video/*.{h,m}"
     s.static_framework = true
   end
@@ -26,6 +28,8 @@ Pod::Spec.new do |s|
     ss.dependency "SPTPersistentCache", "~> 1.1.0"
     ss.dependency "DVAssetLoaderDelegate", "~> 0.3.1"
     ss.dependency "GoogleAds-IMA-iOS-SDK", "~> 3.10.1"
+    ss.dependency "YouboraAVPlayerAdapter", "6.4.2"
+    ss.dependency "YouboraLib", "6.4.0"
 
     ss.source_files = "ios/VideoCaching/**/*.{h,m}"
     s.static_framework = true

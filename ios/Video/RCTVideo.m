@@ -4,7 +4,7 @@
 #import <React/RCTEventDispatcher.h>
 #import <React/UIView+React.h>
 @import GoogleInteractiveMediaAds;
-// @import YouboraAVPlayerAdapter;
+#import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>;
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
 
@@ -95,7 +95,9 @@ static int const RCTVideoUnset = -1;
   UIViewController * _presentingViewController;
   
   NSDictionary *_shahidYouboraOptions;
-
+  YBPlugin * _youboraPlugin;
+  YBAVPlayerAdapter * _adapter;
+  
   BOOL adCuePointsCheck: true;
 
 #if __has_include(<react-native-video/RCTVideoCache.h>)
@@ -163,21 +165,6 @@ static int const RCTVideoUnset = -1;
                                                object:nil];
   }
 
-  // YBOptions *youboraOptions = [YBOptions new];
-  // youboraOptions.accountCode = _shahidYouboraOptions.accountCode;
-  // youboraOptions.contentTitle = _shahidYouboraOptions.contentTitle;
-  // youboraOptions.username = _shahidYouboraOptions.username;
-  // youboraOptions.contentTitle = _shahidYouboraOptions.contentTitle;
-  // youboraOptions.contentTitle2 = _shahidYouboraOptions.contentTitle2;
-  // youboraOptions.contentDuration = _shahidYouboraOptions.contentDuration;
-  // youboraOptions.extraparam2 = _shahidYouboraOptions.extraparam2;
-  // youboraOptions.contentMetadata = _shahidYouboraOptions.contentMetadata;
-  // youboraOptions.contentResource = _shahidYouboraOptions.contentResource;
-  // youboraOptions.isLive = _shahidYouboraOptions.isLive;
-
-  // self.youboraPlugin = [[YBPlugin alloc] initWithOptions:youboraOptions];
-  // adapter = [[YBAVPlayerAdapter alloc] initWithPlayer:_player];
-
   return self;
 }
 
@@ -226,6 +213,12 @@ static int const RCTVideoUnset = -1;
     [_adsManager destroy];
     _adsManager = nil;
     _adsLoader = nil;
+}
+
+- (void)stop
+{
+  NSLog(@"==== stop");
+    [_player replaceCurrentItemWithPlayerItem:nil];
 }
 
 - (void)adsLoader:(IMAAdsLoader *)loader adsLoadedWithData:(IMAAdsLoadedData *)adsLoadedData {
@@ -563,11 +556,31 @@ static int const RCTVideoUnset = -1;
 }
 
 - (void)setDrm:(NSDictionary *)drm {
+    NSLog(@"==== drm %@", drm);
   _drm = drm;
 }
 
 - (void)setShahidYouboraOptions:(NSDictionary *)youboraOptions {
   _shahidYouboraOptions = youboraOptions;
+    dispatch_async(dispatch_get_main_queue(), ^{
+      YBOptions *ybOptions = [YBOptions new];
+    
+      ybOptions.accountCode = @"shahid";
+      ybOptions.username = [_shahidYouboraOptions objectForKey:@"username"];
+      ybOptions.contentTitle = [_shahidYouboraOptions objectForKey:@"contentTitle"];
+      ybOptions.program = [_shahidYouboraOptions objectForKey:@"contentTitle2"];
+      ybOptions.contentDuration = [_shahidYouboraOptions objectForKey:@"contentDuration"];
+      ybOptions.customDimension2 = [_shahidYouboraOptions objectForKey:@"extraparam2"];
+      ybOptions.contentMetadata = [_shahidYouboraOptions objectForKey:@"contentMetadata"];
+      ybOptions.contentResource = [_shahidYouboraOptions objectForKey:@"contentResource"];
+
+    _youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
+    _adapter = [[YBAVPlayerAdapter alloc] initWithPlayer:_player];
+    [_youboraPlugin setAdapter:_adapter];
+    [YBLog setDebugLevel:YBLogLevelVerbose];
+
+    [_adapter fireStart];
+  });
 }
 
 - (NSURL*) urlFilePath:(NSString*) filepath {

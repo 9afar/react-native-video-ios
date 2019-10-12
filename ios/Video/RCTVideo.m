@@ -4,7 +4,7 @@
 #import <React/RCTEventDispatcher.h>
 #import <React/UIView+React.h>
 @import GoogleInteractiveMediaAds;
-#import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>;
+// #import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>;
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
 
@@ -94,9 +94,9 @@ static int const RCTVideoUnset = -1;
   BOOL _filterEnabled;
   UIViewController * _presentingViewController;
   
-  NSDictionary *_shahidYouboraOptions;
-  YBPlugin * _youboraPlugin;
-  YBAVPlayerAdapter * _adapter;
+  // NSDictionary *_shahidYouboraOptions;
+  // YBPlugin * _youboraPlugin;
+  // YBAVPlayerAdapter * _adapter;
   
   BOOL adCuePointsCheck: true;
 
@@ -560,28 +560,28 @@ static int const RCTVideoUnset = -1;
   _drm = drm;
 }
 
-- (void)setShahidYouboraOptions:(NSDictionary *)youboraOptions {
-  _shahidYouboraOptions = youboraOptions;
-    dispatch_async(dispatch_get_main_queue(), ^{
-      YBOptions *ybOptions = [YBOptions new];
+// - (void)setShahidYouboraOptions:(NSDictionary *)youboraOptions {
+//   _shahidYouboraOptions = youboraOptions;
+//     dispatch_async(dispatch_get_main_queue(), ^{
+//       YBOptions *ybOptions = [YBOptions new];
     
-      ybOptions.accountCode = @"shahid";
-      ybOptions.username = [_shahidYouboraOptions objectForKey:@"username"];
-      ybOptions.contentTitle = [_shahidYouboraOptions objectForKey:@"contentTitle"];
-      ybOptions.program = [_shahidYouboraOptions objectForKey:@"contentTitle2"];
-      ybOptions.contentDuration = [_shahidYouboraOptions objectForKey:@"contentDuration"];
-      ybOptions.customDimension2 = [_shahidYouboraOptions objectForKey:@"extraparam2"];
-      ybOptions.contentMetadata = [_shahidYouboraOptions objectForKey:@"contentMetadata"];
-      ybOptions.contentResource = [_shahidYouboraOptions objectForKey:@"contentResource"];
+//       ybOptions.accountCode = @"shahid";
+//       ybOptions.username = [_shahidYouboraOptions objectForKey:@"username"];
+//       ybOptions.contentTitle = [_shahidYouboraOptions objectForKey:@"contentTitle"];
+//       ybOptions.program = [_shahidYouboraOptions objectForKey:@"contentTitle2"];
+//       ybOptions.contentDuration = [_shahidYouboraOptions objectForKey:@"contentDuration"];
+//       ybOptions.customDimension2 = [_shahidYouboraOptions objectForKey:@"extraparam2"];
+//       ybOptions.contentMetadata = [_shahidYouboraOptions objectForKey:@"contentMetadata"];
+//       ybOptions.contentResource = [_shahidYouboraOptions objectForKey:@"contentResource"];
 
-    _youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
-    _adapter = [[YBAVPlayerAdapter alloc] initWithPlayer:_player];
-    [_youboraPlugin setAdapter:_adapter];
-    [YBLog setDebugLevel:YBLogLevelVerbose];
+//     _youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
+//     _adapter = [[YBAVPlayerAdapter alloc] initWithPlayer:_player];
+//     [_youboraPlugin setAdapter:_adapter];
+//     [YBLog setDebugLevel:YBLogLevelVerbose];
 
-    [_adapter fireStart];
-  });
-}
+//     [_adapter fireStart];
+//   });
+// }
 
 - (NSURL*) urlFilePath:(NSString*) filepath {
   if ([filepath containsString:@"file://"]) {

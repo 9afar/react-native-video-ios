@@ -28,7 +28,7 @@ Pod::Spec.new do |s|
     ss.dependency "react-native-video/Video"
     ss.dependency "SPTPersistentCache", "~> 1.1.0"
     ss.dependency "DVAssetLoaderDelegate", "~> 0.3.1"
-    ss.dependency "GoogleAds-IMA-iOS-SDK", "~> 3.10.1",
+    ss.dependency "GoogleAds-IMA-iOS-SDK", "~> 3.10.1"
     ss.dependency "YouboraAVPlayerAdapter", "6.3.3"
     ss.dependency "YouboraLib", "6.3.9"
 

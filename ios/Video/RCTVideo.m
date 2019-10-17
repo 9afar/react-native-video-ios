@@ -4,7 +4,7 @@
 #import <React/RCTEventDispatcher.h>
 #import <React/UIView+React.h>
 @import GoogleInteractiveMediaAds;
-// #import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>;
+#import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>;
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
 
@@ -94,9 +94,9 @@ static int const RCTVideoUnset = -1;
   BOOL _filterEnabled;
   UIViewController * _presentingViewController;
   
-  // NSDictionary *_shahidYouboraOptions;
-  // YBPlugin * _youboraPlugin;
-  // YBAVPlayerAdapter * _adapter;
+  NSDictionary *_shahidYouboraOptions;
+  YBPlugin * _youboraPlugin;
+  YBAVPlayerAdapter * _adapter;
   
   BOOL adCuePointsCheck: true;
 
@@ -424,6 +424,12 @@ static int const RCTVideoUnset = -1;
   
   [[NSNotificationCenter defaultCenter] postNotificationName:@"RCTVideo_progress" object:nil userInfo:@{@"progress": [NSNumber numberWithDouble: currentTimeSecs / duration]}];
   
+  if(_adapter == nil) {
+    NSLog(@"_player %@", _player);
+    _adapter = [[YBAVPlayerAdapter alloc] initWithPlayer:_player];
+    [_youboraPlugin setAdapter:_adapter];
+  }
+
   if( currentTimeSecs >= 0 && self.onVideoProgress) {
     self.onVideoProgress(@{
                            @"currentTime": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
@@ -560,28 +566,38 @@ static int const RCTVideoUnset = -1;
   _drm = drm;
 }
 
-// - (void)setShahidYouboraOptions:(NSDictionary *)youboraOptions {
-//   _shahidYouboraOptions = youboraOptions;
-//     dispatch_async(dispatch_get_main_queue(), ^{
-//       YBOptions *ybOptions = [YBOptions new];
+- (void)setShahidYouboraOptions:(NSDictionary *)youboraOptions {
+  _shahidYouboraOptions = youboraOptions;
+    dispatch_async(dispatch_get_main_queue(), ^{
+      YBOptions *ybOptions = [YBOptions new];
     
-//       ybOptions.accountCode = @"shahid";
-//       ybOptions.username = [_shahidYouboraOptions objectForKey:@"username"];
-//       ybOptions.contentTitle = [_shahidYouboraOptions objectForKey:@"contentTitle"];
-//       ybOptions.program = [_shahidYouboraOptions objectForKey:@"contentTitle2"];
-//       ybOptions.contentDuration = [_shahidYouboraOptions objectForKey:@"contentDuration"];
-//       ybOptions.customDimension2 = [_shahidYouboraOptions objectForKey:@"extraparam2"];
-//       ybOptions.contentMetadata = [_shahidYouboraOptions objectForKey:@"contentMetadata"];
-//       ybOptions.contentResource = [_shahidYouboraOptions objectForKey:@"contentResource"];
+      ybOptions.accountCode = [_shahidYouboraOptions objectForKey:@"accountCode"];;
+      ybOptions.username = [_shahidYouboraOptions objectForKey:@"username"];
+      ybOptions.contentTitle = [_shahidYouboraOptions objectForKey:@"content.title"];
+      ybOptions.program = [_shahidYouboraOptions objectForKey:@"content.title2"];
+      ybOptions.contentDuration = [_shahidYouboraOptions objectForKey:@"content.duration"];
+      ybOptions.customDimension1 = [_shahidYouboraOptions objectForKey:@"extraparam.1"];
+      ybOptions.customDimension2 = [_shahidYouboraOptions objectForKey:@"extraparam.2"];
+      ybOptions.customDimension3 = [_shahidYouboraOptions objectForKey:@"extraparam.3"];
+      ybOptions.customDimension4 = [_shahidYouboraOptions objectForKey:@"extraparam.4"];
+      ybOptions.customDimension5 = [_shahidYouboraOptions objectForKey:@"extraparam.5"];
+      ybOptions.customDimension6 = [_shahidYouboraOptions objectForKey:@"extraparam.6"];
+      ybOptions.customDimension7 = [_shahidYouboraOptions objectForKey:@"extraparam.7"];
+//      ybOptions.contentId = [_shahidYouboraOptions objectForKey:@"content.id"];
+      ybOptions.contentTransactionCode = [_shahidYouboraOptions objectForKey:@"content.transactionCode"];
+//      ybOptions.contentPlaybackType = [_shahidYouboraOptions objectForKey:@"content.playbackType"];
+//      ybOptions.contentSeason = [_shahidYouboraOptions objectForKey:@"content.season"];
+//      ybOptions.contentTvShow = [_shahidYouboraOptions objectForKey:@"content.tvShow"];
+//      ybOptions.contentType = [_shahidYouboraOptions objectForKey:@"content.type"];
+      ybOptions.contentMetadata = [_shahidYouboraOptions objectForKey:@"content.metadata"];
+//      ybOptions.contentResource = [_shahidYouboraOptions objectForKey:@"content.resource"];
+//      ybOptions.isLive = [_shahidYouboraOptions objectForKey:@"content.isLive"];
+    [YBLog setDebugLevel:YBLogLevelVerbose];
+    _youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
 
-//     _youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
-//     _adapter = [[YBAVPlayerAdapter alloc] initWithPlayer:_player];
-//     [_youboraPlugin setAdapter:_adapter];
-//     [YBLog setDebugLevel:YBLogLevelVerbose];
-
-//     [_adapter fireStart];
-//   });
-// }
+    // [_adapter fireStart];
+  });
+}
 
 - (NSURL*) urlFilePath:(NSString*) filepath {
   if ([filepath containsString:@"file://"]) {

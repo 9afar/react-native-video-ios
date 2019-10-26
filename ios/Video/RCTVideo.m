@@ -210,15 +210,20 @@ static int const RCTVideoUnset = -1;
 - (void)destroyAd
 {
   NSLog(@"==== destroy");
-    [_adsManager destroy];
-    _adsManager = nil;
-    _adsLoader = nil;
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        [self->_adsManager destroy];
+        self->_adsManager = nil;
+        self->_adsLoader = nil;
+    });
 }
 
 - (void)stop
 {
   NSLog(@"==== stop");
-    [_player replaceCurrentItemWithPlayerItem:nil];
+     dispatch_sync(dispatch_get_main_queue(), ^{
+        [self->_player pause];
+        self->_player = nil;
+     });
 }
 
 - (void)adsLoader:(IMAAdsLoader *)loader adsLoadedWithData:(IMAAdsLoadedData *)adsLoadedData {

@@ -98,7 +98,7 @@ static int const RCTVideoUnset = -1;
   YBPlugin * _youboraPlugin;
   YBAVPlayerAdapter * _adapter;
   
-  BOOL adCuePointsCheck: true;
+  BOOL _adCuePointsCheck;
 
 #if __has_include(<react-native-video/RCTVideoCache.h>)
   RCTVideoCache * _videoCache;
@@ -133,6 +133,7 @@ static int const RCTVideoUnset = -1;
     _playWhenInactive = false;
     _pictureInPicture = false;
     _ignoreSilentSwitch = @"inherit"; // inherit, ignore, obey
+      _adCuePointsCheck = YES;
 #if TARGET_OS_IOS
     _restoreUserInterfaceForPIPStopCompletionHandler = NULL;
 #endif
@@ -250,8 +251,9 @@ static int const RCTVideoUnset = -1;
 }
 
 - (void)adsManager:(IMAAdsManager *)adsManager didReceiveAdEvent:(IMAAdEvent *)event {
-    if (adCuePointsCheck && self.onAdCuePointsFilled != nil) {
+    if (_adCuePointsCheck && self.onAdCuePointsFilled != nil) {
       self.onAdCuePointsFilled(@{@"target": self.reactTag, @"cuePointsFilled": _adsManager.adCuePoints});
+        _adCuePointsCheck = NO;
     }
     if (event.type == kIMAAdEvent_LOADED && self.onAdsLoaded) {
         self.onAdsLoaded(@{@"target": self.reactTag});
@@ -262,6 +264,7 @@ static int const RCTVideoUnset = -1;
         self.onAdsComplete(@{@"podIndex": [NSNumber numberWithInteger: event.ad.adPodInfo.podIndex], @"target": self.reactTag});
     } else if (event.type == kIMAAdEvent_ALL_ADS_COMPLETED) {
         if (_adsManager) {
+            NSLog(@"++++-: %@",event);
             [_adsManager destroy];
             _adsManager = nil;
         }
@@ -283,6 +286,7 @@ static int const RCTVideoUnset = -1;
 
 - (void)adsManagerDidRequestContentResume:(IMAAdsManager *)adsManager {
     // The SDK is done playing ads (at least for now), so resume the content.
+    self.onAdRollFinished(@{@"finished": @YES});
     [_player play];
 }
 

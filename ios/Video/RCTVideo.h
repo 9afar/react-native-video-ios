@@ -45,6 +45,7 @@
 @property (nonatomic, copy) RCTDirectEventBlock onGetLicense;
 @property (nonatomic, copy) RCTBubblingEventBlock onAdsLoaded;
 @property (nonatomic, copy) RCTBubblingEventBlock onAdStarted;
+@property (nonatomic, copy) RCTBubblingEventBlock onAdRollFinished;
 @property (nonatomic, copy) RCTBubblingEventBlock onAdsComplete;
 @property (nonatomic, copy) RCTBubblingEventBlock onAdError;
 @property (nonatomic, copy) RCTBubblingEventBlock onAdCuePointsFilled;

@@ -74,6 +74,7 @@ RCT_EXPORT_VIEW_PROPERTY(onGetLicense, RCTDirectEventBlock);
 
 RCT_EXPORT_VIEW_PROPERTY(onAdsLoaded, RCTBubblingEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onAdStarted, RCTBubblingEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onAdRollFinished, RCTBubblingEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onAdsComplete, RCTBubblingEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onAdError, RCTBubblingEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onAdCuePointsFilled, RCTBubblingEventBlock);

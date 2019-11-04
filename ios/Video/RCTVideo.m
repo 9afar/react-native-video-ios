@@ -8,7 +8,7 @@
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
 
-@interface RCTVideo () <IMAAdsLoaderDelegate, IMAAdsManagerDelegate>
+@interface RCTVideo ()
 
 @end
 
@@ -99,13 +99,14 @@ static int const RCTVideoUnset = -1;
   YBAVPlayerAdapter * _adapter;
   
   BOOL _adCuePointsCheck;
-
+  CMTime _playerCurrentTime;
 #if __has_include(<react-native-video/RCTVideoCache.h>)
   RCTVideoCache * _videoCache;
 #endif
 #if TARGET_OS_IOS
   void (^__strong _Nonnull _restoreUserInterfaceForPIPStopCompletionHandler)(BOOL);
   AVPictureInPictureController *_pipController;
+  IMAPictureInPictureProxy *_pictureInPictureProxy;
 #endif
 }
 
@@ -170,6 +171,11 @@ static int const RCTVideoUnset = -1;
 }
 
 - (void)setUpContentPlayer {
+    _pictureInPictureProxy =
+      [[IMAPictureInPictureProxy alloc] initWithAVPictureInPictureControllerDelegate:self];
+    _pipController =
+      [[AVPictureInPictureController alloc] initWithPlayerLayer:_playerLayer];
+    _pipController.delegate = _pictureInPictureProxy;
     // Set up our content playhead and contentComplete callback.
     _contentPlayhead = [[IMAAVPlayerContentPlayhead alloc] initWithAVPlayer:_player];
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -179,8 +185,13 @@ static int const RCTVideoUnset = -1;
 }
 
 - (void)setupAdsLoader {
+    IMASettings *settings = [[IMASettings alloc] init];
+    settings.enableBackgroundPlayback = YES;
+    settings.disableNowPlayingInfo = YES;
+    // mid-rolls
+    // settings.autoPlayAdBreaks = NO;
     // Re-use this IMAAdsLoader instance for the entire lifecycle of your app.
-    _adsLoader = [[IMAAdsLoader alloc] initWithSettings:nil];
+    _adsLoader = [[IMAAdsLoader alloc] initWithSettings:settings];
     // NOTE: This line will cause a warning until the next step, "Get the Ads Manager".
     _adsLoader.delegate = self;
 }
@@ -191,10 +202,15 @@ static int const RCTVideoUnset = -1;
     _adDisplayContainer =
     [[IMAAdDisplayContainer alloc] initWithAdContainer:self companionSlots:nil];
     // Create an ad request with our ad tag, display container, and optional user context.
+    // IMAAdsRequest *request = [[IMAAdsRequest alloc] initWithAdTagUrl:adTagUrl
+    //                                               adDisplayContainer:_adDisplayContainer
+    //                                                  contentPlayhead:_contentPlayhead
+    //                                                      userContext:nil];
     IMAAdsRequest *request = [[IMAAdsRequest alloc] initWithAdTagUrl:adTagUrl
-                                                  adDisplayContainer:_adDisplayContainer
-                                                     contentPlayhead:_contentPlayhead
-                                                         userContext:nil];
+                                                    adDisplayContainer:_adDisplayContainer
+                                                    avPlayerVideoDisplay:[[IMAAVPlayerVideoDisplay alloc] initWithAVPlayer:_player]
+                                                    pictureInPictureProxy:_pictureInPictureProxy
+                                                    userContext:nil];
     [_adsLoader requestAdsWithRequest:request];
 }
 
@@ -223,6 +239,8 @@ static int const RCTVideoUnset = -1;
   NSLog(@"==== stop");
      dispatch_sync(dispatch_get_main_queue(), ^{
         [self->_player pause];
+         self->_playerItem = nil;
+        [self->_player replaceCurrentItemWithPlayerItem:nil];
         self->_player = nil;
      });
 }
@@ -247,7 +265,19 @@ static int const RCTVideoUnset = -1;
     if (self.onAdError) {
         self.onAdError(@{@"target": self.reactTag});
     }
-    [_player play];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [_player play];
+    });
+}
+
+- (BOOL) isAirPlayActive {
+    BOOL airplayFound = NO;
+    for (AVAudioSessionPortDescription *outputPort in [AVAudioSession sharedInstance].currentRoute.outputs) {
+        if ([outputPort.portType isEqualToString: AVAudioSessionPortAirPlay]) {
+            airplayFound = YES;
+        }
+    }
+    return airplayFound;
 }
 
 - (void)adsManager:(IMAAdsManager *)adsManager didReceiveAdEvent:(IMAAdEvent *)event {
@@ -256,6 +286,9 @@ static int const RCTVideoUnset = -1;
         _adCuePointsCheck = NO;
     }
     if (event.type == kIMAAdEvent_LOADED && self.onAdsLoaded) {
+        // if (![_pipController isPictureInPictureActive]) {
+        //   [adsManager start];
+        // }
         self.onAdsLoaded(@{@"target": self.reactTag});
         [_adsManager start];
     } else if (event.type == kIMAAdEvent_STARTED && self.onAdStarted) {
@@ -276,18 +309,29 @@ static int const RCTVideoUnset = -1;
     // Something went wrong with the ads manager after ads were loaded. Log the error and play the
     // content.
     NSLog(@"AdsManager error: %@", error.message);
-    [_player play];
+    // if ([self isAirPlayActive]) {
+      [_player seekToTime:_playerCurrentTime];
+    // }
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [_player play];
+    });
 }
 
 - (void)adsManagerDidRequestContentPause:(IMAAdsManager *)adsManager {
     // The SDK is going to play ads, so pause the content.
+    _playerCurrentTime = [_playerItem currentTime];
     [_player pause];
 }
 
 - (void)adsManagerDidRequestContentResume:(IMAAdsManager *)adsManager {
     // The SDK is done playing ads (at least for now), so resume the content.
     self.onAdRollFinished(@{@"finished": @YES});
-    [_player play];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [_player play];
+    });
+    if ([self isAirPlayActive] && _player != nil && !CMTIME_IS_INVALID(_playerCurrentTime)) {
+        [_player seekToTime:_playerCurrentTime];
+    }
 }
 
 - (RCTVideoPlayerViewController*)createPlayerViewController:(AVPlayer*)player
@@ -365,21 +409,23 @@ static int const RCTVideoUnset = -1;
 
 - (void)applicationWillResignActive:(NSNotification *)notification
 {
-  if (_playInBackground || _playWhenInactive || _paused) return;
-  
+  if (_playInBackground || _playWhenInactive || _paused || [self isAirPlayActive]) return;
+
   [_player pause];
   [_player setRate:0.0];
 }
 
 - (void)applicationDidEnterBackground:(NSNotification *)notification
 {
-  if (_playInBackground) {
-    // Needed to play sound in background. See https://developer.apple.com/library/ios/qa/qa1668/_index.html
-    [_playerLayer setPlayer:nil];
-    [_playerViewController setPlayer:nil];
-  }
-  if(_adsManager != nil) {
-      [_adsManager pause];
+  if(![self isAirPlayActive]) {
+   if (_playInBackground) {
+     // Needed to play sound in background. See https://developer.apple.com/library/ios/qa/qa1668/_index.html
+     [_playerLayer setPlayer:nil];
+     [_playerViewController setPlayer:nil];
+   }
+    if(_adsManager != nil) {
+        [_adsManager pause];
+    }
   }
 }
 
@@ -408,6 +454,9 @@ static int const RCTVideoUnset = -1;
 {
   NSNumber *reason = [[notification userInfo] objectForKey:AVAudioSessionRouteChangeReasonKey];
   NSNumber *previousRoute = [[notification userInfo] objectForKey:AVAudioSessionRouteChangePreviousRouteKey];
+  if(!CMTIME_IS_INVALID(_playerCurrentTime)) {
+    [_player seekToTime:_playerCurrentTime];
+  }
   if (reason.unsignedIntValue == AVAudioSessionRouteChangeReasonOldDeviceUnavailable) {
     self.onVideoAudioBecomingNoisy(@{@"target": self.reactTag});
   }
@@ -440,6 +489,7 @@ static int const RCTVideoUnset = -1;
   }
 
   if( currentTimeSecs >= 0 && self.onVideoProgress) {
+    _playerCurrentTime = [_playerItem currentTime];
     self.onVideoProgress(@{
                            @"currentTime": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
                            @"playableDuration": [self calculatePlayableDuration],
@@ -546,6 +596,8 @@ static int const RCTVideoUnset = -1;
       [self->_player addObserver:self forKeyPath:externalPlaybackActive options:0 context:nil];
       self->_isExternalPlaybackActiveObserverRegistered = YES;
       
+      self->_player.usesExternalPlaybackWhileExternalScreenIsActive = YES;
+
       [self addPlayerTimeObserver];
       if (@available(iOS 10.0, *)) {
         [self setAutomaticallyWaitsToMinimizeStalling:_automaticallyWaitsToMinimizeStalling];

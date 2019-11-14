@@ -432,7 +432,7 @@ static int const RCTVideoUnset = -1;
 - (void)applicationDidBecomeActive:(NSNotification *)notification
 {
   if (_adsManager != nil) {
-    [_adsManager resume];
+//    [_adsManager resume];
   }
 }
 
@@ -444,7 +444,7 @@ static int const RCTVideoUnset = -1;
     [_playerViewController setPlayer:_player];
   }
   if (_adsManager) {
-    [_adsManager resume];
+//    [_adsManager resume];
   }
 }
 

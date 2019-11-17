@@ -266,6 +266,9 @@ static int const RCTVideoUnset = -1;
         self.onAdError(@{@"target": self.reactTag});
     }
     dispatch_async(dispatch_get_main_queue(), ^{
+      [[AVAudioSession sharedInstance]
+            setCategory: AVAudioSessionCategoryPlayback
+                  error: nil];
       [_player play];
     });
 }
@@ -313,6 +316,9 @@ static int const RCTVideoUnset = -1;
       [_player seekToTime:_playerCurrentTime];
     // }
     dispatch_async(dispatch_get_main_queue(), ^{
+      [[AVAudioSession sharedInstance]
+            setCategory: AVAudioSessionCategoryPlayback
+                  error: nil];
       [_player play];
     });
 }
@@ -327,6 +333,9 @@ static int const RCTVideoUnset = -1;
     // The SDK is done playing ads (at least for now), so resume the content.
     self.onAdRollFinished(@{@"finished": @YES});
     dispatch_async(dispatch_get_main_queue(), ^{
+      [[AVAudioSession sharedInstance]
+            setCategory: AVAudioSessionCategoryPlayback
+                  error: nil];
       [_player play];
     });
     if ([self isAirPlayActive] && _player != nil && !CMTIME_IS_INVALID(_playerCurrentTime)) {

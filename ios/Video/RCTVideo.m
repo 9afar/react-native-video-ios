@@ -7,6 +7,7 @@
 #import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>;
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
+@import MediaPlayer;
 
 @interface RCTVideo ()
 
@@ -266,9 +267,6 @@ static int const RCTVideoUnset = -1;
         self.onAdError(@{@"target": self.reactTag});
     }
     dispatch_async(dispatch_get_main_queue(), ^{
-      [[AVAudioSession sharedInstance]
-            setCategory: AVAudioSessionCategoryPlayback
-                  error: nil];
       [_player play];
     });
 }
@@ -316,9 +314,6 @@ static int const RCTVideoUnset = -1;
       [_player seekToTime:_playerCurrentTime];
     // }
     dispatch_async(dispatch_get_main_queue(), ^{
-      [[AVAudioSession sharedInstance]
-            setCategory: AVAudioSessionCategoryPlayback
-                  error: nil];
       [_player play];
     });
 }
@@ -333,9 +328,6 @@ static int const RCTVideoUnset = -1;
     // The SDK is done playing ads (at least for now), so resume the content.
     self.onAdRollFinished(@{@"finished": @YES});
     dispatch_async(dispatch_get_main_queue(), ^{
-      [[AVAudioSession sharedInstance]
-            setCategory: AVAudioSessionCategoryPlayback
-                  error: nil];
       [_player play];
     });
     if ([self isAirPlayActive] && _player != nil && !CMTIME_IS_INVALID(_playerCurrentTime)) {
@@ -441,7 +433,7 @@ static int const RCTVideoUnset = -1;
 - (void)applicationDidBecomeActive:(NSNotification *)notification
 {
   if (_adsManager != nil) {
-//    [_adsManager resume];
+    [_adsManager resume];
   }
 }
 
@@ -453,7 +445,7 @@ static int const RCTVideoUnset = -1;
     [_playerViewController setPlayer:_player];
   }
   if (_adsManager) {
-//    [_adsManager resume];
+    [_adsManager resume];
   }
 }
 
@@ -568,10 +560,23 @@ static int const RCTVideoUnset = -1;
   }
 }
 
+- (void)pausePlayer
+{
+  [_player pause];
+}
+
+- (void)playPlayer
+{
+  [_player play];
+}
+
 #pragma mark - Player and source
 
 - (void)setSrc:(NSDictionary *)source
 {
+  [[MPRemoteCommandCenter sharedCommandCenter].pauseCommand addTarget: self action: @selector(pausePlayer)];
+  [[MPRemoteCommandCenter sharedCommandCenter].playCommand addTarget: self action: @selector(playPlayer)];
+
   _source = source;
   [self removePlayerLayer];
   [self removePlayerTimeObserver];

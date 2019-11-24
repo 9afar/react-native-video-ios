@@ -9,6 +9,20 @@
 #include <AVFoundation/AVFoundation.h>
 @import MediaPlayer;
 
+@interface CustomAdapter : YBAVPlayerAdapter
+  @property NSDictionary *customArguments;
+@end
+
+@implementation CustomAdapter
+- (void)fireJoin {
+    [super fireJoin:self.customArguments];
+}
+- (void)fireStart {
+    [super fireStart:self.customArguments];
+}
+@end
+
+
 @interface RCTVideo ()
 
 @end
@@ -97,7 +111,7 @@ static int const RCTVideoUnset = -1;
   
   NSDictionary *_shahidYouboraOptions;
   YBPlugin * _youboraPlugin;
-  YBAVPlayerAdapter * _adapter;
+  CustomAdapter * _adapter;
   
   BOOL _adCuePointsCheck;
   CMTime _playerCurrentTime;
@@ -485,7 +499,7 @@ static int const RCTVideoUnset = -1;
   
   if(_adapter == nil) {
     NSLog(@"_player %@", _player);
-    _adapter = [[YBAVPlayerAdapter alloc] initWithPlayer:_player];
+    _adapter = [[CustomAdapter alloc] initWithPlayer:_player];
     [_youboraPlugin setAdapter:_adapter];
   }
 
@@ -611,10 +625,10 @@ static int const RCTVideoUnset = -1;
       self->_isExternalPlaybackActiveObserverRegistered = YES;
       
       self->_player.usesExternalPlaybackWhileExternalScreenIsActive = YES;
-
+      
       [self addPlayerTimeObserver];
       if (@available(iOS 10.0, *)) {
-        [self setAutomaticallyWaitsToMinimizeStalling:_automaticallyWaitsToMinimizeStalling];
+          [self setAutomaticallyWaitsToMinimizeStalling:self->_automaticallyWaitsToMinimizeStalling];
       }
 
       //Perform on next run loop, otherwise onVideoLoadStart is nil
@@ -664,12 +678,18 @@ static int const RCTVideoUnset = -1;
 //      ybOptions.contentSeason = [_shahidYouboraOptions objectForKey:@"content.season"];
 //      ybOptions.contentTvShow = [_shahidYouboraOptions objectForKey:@"content.tvShow"];
 //      ybOptions.contentType = [_shahidYouboraOptions objectForKey:@"content.type"];
-      ybOptions.contentMetadata = [_shahidYouboraOptions objectForKey:@"content.metadata"];
+        ybOptions.contentMetadata = [self->_shahidYouboraOptions objectForKey:@"content.metadata"];
 //      ybOptions.contentResource = [_shahidYouboraOptions objectForKey:@"content.resource"];
 //      ybOptions.isLive = [_shahidYouboraOptions objectForKey:@"content.isLive"];
     [YBLog setDebugLevel:YBLogLevelVerbose];
-    _youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
-
+        self->_youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
+        self->_adapter.customArguments = @{
+        @"contentPlaybackType": [self->_shahidYouboraOptions objectForKey:@"content.playbackType"],
+        @"contentSeason": [self->_shahidYouboraOptions objectForKey:@"content.season"],
+        @"contentTvShow": [self->_shahidYouboraOptions objectForKey:@"content.tvShow"],
+        @"contentId": [self->_shahidYouboraOptions objectForKey:@"content.id"],
+        @"isLive": [self->_shahidYouboraOptions objectForKey:@"content.isLive"]
+    };
     // [_adapter fireStart];
   });
 }
@@ -1911,6 +1931,7 @@ static int const RCTVideoUnset = -1;
 }
 
 - (BOOL)finishLoadingWithError:(NSError *)error {
+    NSLog(@"ooo %@", error);
   if (_loadingRequest && error != nil) {
     NSError *licenseError = error;
     [_loadingRequest finishLoadingWithError:licenseError];
@@ -1957,6 +1978,7 @@ static int const RCTVideoUnset = -1;
 }
 
 - (BOOL)resourceLoader:(AVAssetResourceLoader *)resourceLoader shouldWaitForLoadingOfRequestedResource:(AVAssetResourceLoadingRequest *)loadingRequest {
+    NSLog(@"ooo shouldWaitForLoadingOfRequestedResource");
   return [self loadingRequestHandling:loadingRequest];
 }
 

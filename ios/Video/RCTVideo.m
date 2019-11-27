@@ -4,7 +4,8 @@
 #import <React/RCTEventDispatcher.h>
 #import <React/UIView+React.h>
 @import GoogleInteractiveMediaAds;
-#import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>;
+#import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>
+#import <YouboraIMAAdapter/YBIMAAdapter.h>
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
 @import MediaPlayer;
@@ -272,6 +273,11 @@ static int const RCTVideoUnset = -1;
     
     // Initialize the ads manager.
     [_adsManager initializeWithAdsRenderingSettings:adsRenderingSettings];
+    
+    //As soon as the AdsManager is loaded we pass it to the adapter
+    YBIMAAdapter* adsAdapter = [[YBIMAAdapter alloc] initWithPlayer:_adsManager];
+
+    [_youboraPlugin setAdsAdapter:adsAdapter];
 }
 
 - (void)adsLoader:(IMAAdsLoader *)loader failedWithErrorData:(IMAAdLoadingErrorData *)adErrorData {
@@ -659,7 +665,7 @@ static int const RCTVideoUnset = -1;
   _shahidYouboraOptions = youboraOptions;
     dispatch_async(dispatch_get_main_queue(), ^{
       YBOptions *ybOptions = [YBOptions new];
-    
+      NSLog(@"==== set adapter");
       ybOptions.accountCode = [_shahidYouboraOptions objectForKey:@"accountCode"];;
       ybOptions.username = [_shahidYouboraOptions objectForKey:@"username"];
       ybOptions.contentTitle = [_shahidYouboraOptions objectForKey:@"content.title"];
@@ -682,14 +688,36 @@ static int const RCTVideoUnset = -1;
 //      ybOptions.contentResource = [_shahidYouboraOptions objectForKey:@"content.resource"];
 //      ybOptions.isLive = [_shahidYouboraOptions objectForKey:@"content.isLive"];
     [YBLog setDebugLevel:YBLogLevelVerbose];
-        self->_youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
-        self->_adapter.customArguments = @{
-        @"contentPlaybackType": [self->_shahidYouboraOptions objectForKey:@"content.playbackType"],
-        @"contentSeason": [self->_shahidYouboraOptions objectForKey:@"content.season"],
-        @"contentTvShow": [self->_shahidYouboraOptions objectForKey:@"content.tvShow"],
-        @"contentId": [self->_shahidYouboraOptions objectForKey:@"content.id"],
-        @"isLive": [self->_shahidYouboraOptions objectForKey:@"content.isLive"]
-    };
+        _youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
+        NSString *playbackType = @"";
+        NSString *season = @"";
+        NSString *tvShow = @"";
+        NSString *contentId = @"";
+        NSString *isLive = @"";
+        
+        if([_shahidYouboraOptions objectForKey:@"content.playbackType"]) {
+            playbackType = [_shahidYouboraOptions objectForKey:@"content.playbackType"];
+        }
+        if([_shahidYouboraOptions objectForKey:@"content.season"]) {
+            season = [_shahidYouboraOptions objectForKey:@"content.season"];
+        }
+        if([_shahidYouboraOptions objectForKey:@"content.tvShow"]) {
+            tvShow = [_shahidYouboraOptions objectForKey:@"content.tvShow"];
+        }
+        if([_shahidYouboraOptions objectForKey:@"content.id"]) {
+            contentId = [_shahidYouboraOptions objectForKey:@"content.id"];
+        }
+        if([_shahidYouboraOptions objectForKey:@"content.isLive"]) {
+            isLive = [_shahidYouboraOptions objectForKey:@"content.isLive"];
+        }
+        
+        _adapter.customArguments = @{
+          @"contentPlaybackType": playbackType,
+          @"contentSeason": season,
+          @"contentTvShow": tvShow,
+          @"contentId": contentId,
+          @"isLive": isLive
+        };
     // [_adapter fireStart];
   });
 }

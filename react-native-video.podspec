@@ -19,6 +19,7 @@ Pod::Spec.new do |s|
     ss.dependency "GoogleAds-IMA-iOS-SDK", "~> 3.10.1"
     ss.dependency "YouboraAVPlayerAdapter", "6.3.3"
     ss.dependency "YouboraLib", "6.3.9"
+    ss.dependency "YouboraIMAAdapter", "~> 6.3"
 
     ss.source_files  = "ios/Video/*.{h,m}"
     s.static_framework = true
@@ -31,6 +32,7 @@ Pod::Spec.new do |s|
     ss.dependency "GoogleAds-IMA-iOS-SDK", "~> 3.10.1"
     ss.dependency "YouboraAVPlayerAdapter", "6.3.3"
     ss.dependency "YouboraLib", "6.3.9"
+    ss.dependency "YouboraIMAAdapter", "~> 6.3"
 
     ss.source_files = "ios/VideoCaching/**/*.{h,m}"
     s.static_framework = true

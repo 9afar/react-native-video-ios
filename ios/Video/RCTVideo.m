@@ -151,6 +151,7 @@ static int const RCTVideoUnset = -1;
     _pictureInPicture = false;
     _ignoreSilentSwitch = @"inherit"; // inherit, ignore, obey
       _adCuePointsCheck = YES;
+      _requestingCertificate = NO;
 #if TARGET_OS_IOS
     _restoreUserInterfaceForPIPStopCompletionHandler = NULL;
 #endif
@@ -192,6 +193,7 @@ static int const RCTVideoUnset = -1;
     _pipController =
       [[AVPictureInPictureController alloc] initWithPlayerLayer:_playerLayer];
     _pipController.delegate = _pictureInPictureProxy;
+    _player.usesExternalPlaybackWhileExternalScreenIsActive = TRUE;
     // Set up our content playhead and contentComplete callback.
     _contentPlayhead = [[IMAAVPlayerContentPlayhead alloc] initWithAVPlayer:_player];
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -504,7 +506,6 @@ static int const RCTVideoUnset = -1;
   [[NSNotificationCenter defaultCenter] postNotificationName:@"RCTVideo_progress" object:nil userInfo:@{@"progress": [NSNumber numberWithDouble: currentTimeSecs / duration]}];
   
   if(_adapter == nil) {
-    NSLog(@"_player %@", _player);
     _adapter = [[CustomAdapter alloc] initWithPlayer:_player];
     [_youboraPlugin setAdapter:_adapter];
   }
@@ -630,7 +631,7 @@ static int const RCTVideoUnset = -1;
       [self->_player addObserver:self forKeyPath:externalPlaybackActive options:0 context:nil];
       self->_isExternalPlaybackActiveObserverRegistered = YES;
       
-      self->_player.usesExternalPlaybackWhileExternalScreenIsActive = YES;
+      self->_player.usesExternalPlaybackWhileExternalScreenIsActive = TRUE;
       
       [self addPlayerTimeObserver];
       if (@available(iOS 10.0, *)) {
@@ -2016,11 +2017,13 @@ didCancelLoadingRequest:(AVAssetResourceLoadingRequest *)loadingRequest {
 }
 
 - (BOOL)loadingRequestHandling:(AVAssetResourceLoadingRequest *)loadingRequest {
-  if (self->_requestingCertificate) {
-    return YES;
-  } else if (self->_requestingCertificateErrored) {
-    return NO;
-  }
+  // if (self->_requestingCertificate) {
+  //     NSLog(@"==== yes");
+  //   return YES;
+  // } else if (self->_requestingCertificateErrored) {
+  //     NSLog(@"==== no");
+  //   return NO;
+  // }
   _loadingRequest = loadingRequest;
   NSURL *url = loadingRequest.request.URL;
   NSString *assetId = url.host;

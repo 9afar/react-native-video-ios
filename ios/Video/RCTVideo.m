@@ -504,71 +504,6 @@ static int const RCTVideoUnset = -1;
   const Float64 currentTimeSecs = CMTimeGetSeconds(currentTime);
   
   [[NSNotificationCenter defaultCenter] postNotificationName:@"RCTVideo_progress" object:nil userInfo:@{@"progress": [NSNumber numberWithDouble: currentTimeSecs / duration]}];
-
-  // check if this is the first chunk
-  if(_adapter == nil && _shahidYouboraOptions != nil) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-      YBOptions *ybOptions = [YBOptions new];
-      NSLog(@"==== set adapter");
-      ybOptions.accountCode = [_shahidYouboraOptions objectForKey:@"accountCode"];;
-      ybOptions.username = [_shahidYouboraOptions objectForKey:@"username"];
-      ybOptions.contentTitle = [_shahidYouboraOptions objectForKey:@"content.title"];
-      ybOptions.program = [_shahidYouboraOptions objectForKey:@"content.title2"];
-      ybOptions.contentDuration = [_shahidYouboraOptions objectForKey:@"content.duration"];
-      ybOptions.customDimension1 = [_shahidYouboraOptions objectForKey:@"extraparam.1"];
-      ybOptions.customDimension2 = [_shahidYouboraOptions objectForKey:@"extraparam.2"];
-      ybOptions.customDimension3 = [_shahidYouboraOptions objectForKey:@"extraparam.3"];
-      ybOptions.customDimension4 = [_shahidYouboraOptions objectForKey:@"extraparam.4"];
-      ybOptions.customDimension5 = [_shahidYouboraOptions objectForKey:@"extraparam.5"];
-      ybOptions.customDimension6 = [_shahidYouboraOptions objectForKey:@"extraparam.6"];
-      ybOptions.customDimension7 = [_shahidYouboraOptions objectForKey:@"extraparam.7"];
-//      ybOptions.contentId = [_shahidYouboraOptions objectForKey:@"content.id"];
-      ybOptions.contentTransactionCode = [_shahidYouboraOptions objectForKey:@"content.transactionCode"];
-//      ybOptions.contentPlaybackType = [_shahidYouboraOptions objectForKey:@"content.playbackType"];
-//      ybOptions.contentSeason = [_shahidYouboraOptions objectForKey:@"content.season"];
-//      ybOptions.contentTvShow = [_shahidYouboraOptions objectForKey:@"content.tvShow"];
-//      ybOptions.contentType = [_shahidYouboraOptions objectForKey:@"content.type"];
-      ybOptions.contentMetadata = [self->_shahidYouboraOptions objectForKey:@"content.metadata"];
-//      ybOptions.contentResource = [_shahidYouboraOptions objectForKey:@"content.resource"];
-//      ybOptions.isLive = [_shahidYouboraOptions objectForKey:@"content.isLive"];
-    [YBLog setDebugLevel:YBLogLevelVerbose];
-      _youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
-      NSString *playbackType = @"";
-      NSString *season = @"";
-      NSString *tvShow = @"";
-      NSString *contentId = @"";
-      NSString *isLive = @"";
-      
-      if([_shahidYouboraOptions objectForKey:@"content.playbackType"]) {
-          playbackType = [_shahidYouboraOptions objectForKey:@"content.playbackType"];
-      }
-      if([_shahidYouboraOptions objectForKey:@"content.season"]) {
-          season = [_shahidYouboraOptions objectForKey:@"content.season"];
-      }
-      if([_shahidYouboraOptions objectForKey:@"content.tvShow"]) {
-          tvShow = [_shahidYouboraOptions objectForKey:@"content.tvShow"];
-      }
-      if([_shahidYouboraOptions objectForKey:@"content.id"]) {
-          contentId = [_shahidYouboraOptions objectForKey:@"content.id"];
-      }
-      if([_shahidYouboraOptions objectForKey:@"content.isLive"]) {
-          isLive = [_shahidYouboraOptions objectForKey:@"content.isLive"];
-      }
-
-      if(_adapter == nil) {
-        _adapter = [[CustomAdapter alloc] initWithPlayer:_player];
-        [_youboraPlugin setAdapter:_adapter];
-      }
-      
-      _adapter.customArguments = @{
-        @"contentPlaybackType": playbackType,
-        @"contentSeason": season,
-        @"contentTvShow": tvShow,
-        @"contentId": contentId,
-        @"isLive": isLive
-      };
-    });
-  }
   
   if( currentTimeSecs >= 0 && self.onVideoProgress) {
     _playerCurrentTime = [_playerItem currentTime];
@@ -712,6 +647,74 @@ static int const RCTVideoUnset = -1;
       }
       [self setUpContentPlayer];
       [self setupAdsLoader];
+
+      // check if this is the first chunk
+  // if(_adapter == nil && _shahidYouboraOptions != nil && _youboraPlugin == nil) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+      YBOptions *ybOptions = [YBOptions new];
+      NSLog(@"==== set adapter");
+      ybOptions.accountCode = [_shahidYouboraOptions objectForKey:@"accountCode"];;
+      ybOptions.username = [_shahidYouboraOptions objectForKey:@"username"];
+      ybOptions.contentTitle = [_shahidYouboraOptions objectForKey:@"content.title"];
+      ybOptions.program = [_shahidYouboraOptions objectForKey:@"content.title2"];
+      ybOptions.contentDuration = [_shahidYouboraOptions objectForKey:@"content.duration"];
+      ybOptions.customDimension1 = [_shahidYouboraOptions objectForKey:@"extraparam.1"];
+      ybOptions.customDimension2 = [_shahidYouboraOptions objectForKey:@"extraparam.2"];
+      ybOptions.customDimension3 = [_shahidYouboraOptions objectForKey:@"extraparam.3"];
+      ybOptions.customDimension4 = [_shahidYouboraOptions objectForKey:@"extraparam.4"];
+      ybOptions.customDimension5 = [_shahidYouboraOptions objectForKey:@"extraparam.5"];
+      ybOptions.customDimension6 = [_shahidYouboraOptions objectForKey:@"extraparam.6"];
+      ybOptions.customDimension7 = [_shahidYouboraOptions objectForKey:@"extraparam.7"];
+//      ybOptions.contentId = [_shahidYouboraOptions objectForKey:@"content.id"];
+      ybOptions.contentTransactionCode = [_shahidYouboraOptions objectForKey:@"content.transactionCode"];
+//      ybOptions.contentPlaybackType = [_shahidYouboraOptions objectForKey:@"content.playbackType"];
+//      ybOptions.contentSeason = [_shahidYouboraOptions objectForKey:@"content.season"];
+//      ybOptions.contentTvShow = [_shahidYouboraOptions objectForKey:@"content.tvShow"];
+//      ybOptions.contentType = [_shahidYouboraOptions objectForKey:@"content.type"];
+      ybOptions.contentMetadata = [self->_shahidYouboraOptions objectForKey:@"content.metadata"];
+//      ybOptions.contentResource = [_shahidYouboraOptions objectForKey:@"content.resource"];
+//      ybOptions.isLive = [_shahidYouboraOptions objectForKey:@"content.isLive"];
+    [YBLog setDebugLevel:YBLogLevelVerbose];
+      _youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
+
+      NSLog(@"==== _youboraPlugin has been init");
+
+      NSString *playbackType = @"";
+      NSString *season = @"";
+      NSString *tvShow = @"";
+      NSString *contentId = @"";
+      NSString *isLive = @"";
+      
+      if([_shahidYouboraOptions objectForKey:@"content.playbackType"]) {
+          playbackType = [_shahidYouboraOptions objectForKey:@"content.playbackType"];
+      }
+      if([_shahidYouboraOptions objectForKey:@"content.season"]) {
+          season = [_shahidYouboraOptions objectForKey:@"content.season"];
+      }
+      if([_shahidYouboraOptions objectForKey:@"content.tvShow"]) {
+          tvShow = [_shahidYouboraOptions objectForKey:@"content.tvShow"];
+      }
+      if([_shahidYouboraOptions objectForKey:@"content.id"]) {
+          contentId = [_shahidYouboraOptions objectForKey:@"content.id"];
+      }
+      if([_shahidYouboraOptions objectForKey:@"content.isLive"]) {
+          isLive = [_shahidYouboraOptions objectForKey:@"content.isLive"];
+      }
+        
+        _adapter = [[CustomAdapter alloc] initWithPlayer:_player];
+        [_youboraPlugin setAdapter:_adapter];
+      
+      _adapter.customArguments = @{
+        @"contentPlaybackType": playbackType,
+        @"contentSeason": season,
+        @"contentTvShow": tvShow,
+        @"contentId": contentId,
+        @"isLive": isLive
+      };
+    });
+  // }
+
+
     }];
   });
   _videoLoadStarted = YES;

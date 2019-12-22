@@ -483,6 +483,7 @@ static int const RCTVideoUnset = -1;
   if (reason.unsignedIntValue == AVAudioSessionRouteChangeReasonOldDeviceUnavailable) {
     self.onVideoAudioBecomingNoisy(@{@"target": self.reactTag});
   }
+  [_player pause];
 }
 
 #pragma mark - Progress
@@ -590,8 +591,12 @@ static int const RCTVideoUnset = -1;
 
 - (void)setSrc:(NSDictionary *)source
 {
-  [[MPRemoteCommandCenter sharedCommandCenter].pauseCommand addTarget: self action: @selector(pausePlayer)];
-  [[MPRemoteCommandCenter sharedCommandCenter].playCommand addTarget: self action: @selector(playPlayer)];
+  MPRemoteCommandCenter *commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
+  commandCenter.playCommand.enabled = YES;
+  [commandCenter.playCommand addTarget:self action:@selector(playPlayer)];
+
+  commandCenter.pauseCommand.enabled = YES;
+  [commandCenter.pauseCommand addTarget:self action:@selector(pausePlayer)];
 
   _source = source;
   [self removePlayerLayer];

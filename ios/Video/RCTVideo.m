@@ -432,6 +432,12 @@ static int const RCTVideoUnset = -1;
 
 - (void)applicationWillResignActive:(NSNotification *)notification
 {
+    if(![self isAirPlayActive]) {
+        [[UIApplication sharedApplication] endReceivingRemoteControlEvents];
+        MPRemoteCommandCenter *commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
+        commandCenter.playCommand.enabled = NO;
+        commandCenter.pauseCommand.enabled = NO;
+    }
   if (_playInBackground || _playWhenInactive || _paused || [self isAirPlayActive]) return;
 
   [_player pause];
@@ -441,6 +447,10 @@ static int const RCTVideoUnset = -1;
 - (void)applicationDidEnterBackground:(NSNotification *)notification
 {
   if(![self isAirPlayActive]) {
+    [[UIApplication sharedApplication] endReceivingRemoteControlEvents];
+      MPRemoteCommandCenter *commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
+      commandCenter.playCommand.enabled = NO;
+      commandCenter.pauseCommand.enabled = NO;
    if (_playInBackground) {
      // Needed to play sound in background. See https://developer.apple.com/library/ios/qa/qa1668/_index.html
      [_playerLayer setPlayer:nil];
@@ -462,10 +472,10 @@ static int const RCTVideoUnset = -1;
 - (void)applicationWillEnterForeground:(NSNotification *)notification
 {
   [self applyModifiers];
-  if (_playInBackground) {
-    [_playerLayer setPlayer:_player];
-    [_playerViewController setPlayer:_player];
-  }
+//  if (_playInBackground) {
+//    [_playerLayer setPlayer:_player];
+//    [_playerViewController setPlayer:_player];
+//  }
   if (_adsManager) {
     [_adsManager resume];
   }
@@ -1354,7 +1364,7 @@ static int const RCTVideoUnset = -1;
   [self setSelectedTextTrack:_selectedTextTrack];
   [self setResizeMode:_resizeMode];
   [self setRepeat:_repeat];
-  [self setPaused:_paused];
+  [self setPaused:YES];
   [self setControls:_controls];
   [self setAllowsExternalPlayback:_allowsExternalPlayback];
 }

@@ -485,6 +485,7 @@ static int const RCTVideoUnset = -1;
 
 - (void)audioRouteChanged:(NSNotification *)notification
 {
+  _paused = YES;
   NSNumber *reason = [[notification userInfo] objectForKey:AVAudioSessionRouteChangeReasonKey];
   NSNumber *previousRoute = [[notification userInfo] objectForKey:AVAudioSessionRouteChangePreviousRouteKey];
   if(!CMTIME_IS_INVALID(_playerCurrentTime)) {
@@ -594,7 +595,9 @@ static int const RCTVideoUnset = -1;
 
 - (void)playPlayer
 {
-  [_player play];
+  if([self isAirPlayActive]) {
+    [_player play];
+  }
 }
 
 #pragma mark - Player and source
@@ -1292,7 +1295,7 @@ static int const RCTVideoUnset = -1;
     BOOL wasPaused = _paused;
     
     if (CMTimeCompare(current, cmSeekTime) != 0) {
-      if (!wasPaused) [_player pause];
+      // if (!wasPaused) [_player pause];
       [_player seekToTime:cmSeekTime toleranceBefore:tolerance toleranceAfter:tolerance completionHandler:^(BOOL finished) {
         if (!_timeObserver) {
           [self addPlayerTimeObserver];
@@ -1358,13 +1361,13 @@ static int const RCTVideoUnset = -1;
     [_player setVolume:_volume];
     [_player setMuted:NO];
   }
-  
+
   [self setMaxBitRate:_maxBitRate];
   [self setSelectedAudioTrack:_selectedAudioTrack];
   [self setSelectedTextTrack:_selectedTextTrack];
   [self setResizeMode:_resizeMode];
   [self setRepeat:_repeat];
-  [self setPaused:YES];
+  [self setPaused:_paused];
   [self setControls:_controls];
   [self setAllowsExternalPlayback:_allowsExternalPlayback];
 }

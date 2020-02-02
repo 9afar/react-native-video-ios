@@ -15,11 +15,20 @@
 @end
 
 @implementation CustomAdapter
+
 - (void)fireJoin {
     [super fireJoin:self.customArguments];
 }
 - (void)fireStart {
     [super fireStart:self.customArguments];
+}
+- (void)fireStop:(NSDictionary<NSString *,NSString *> *)params {
+    if (self.plugin && self.plugin.adsAdapter && self.plugin.adsAdapter.flags.started) {
+        return;
+    }
+    
+    [super fireStop:params];
+    self.supportPlaylists = NO;
 }
 @end
 
@@ -485,7 +494,9 @@ static int const RCTVideoUnset = -1;
 
 - (void)audioRouteChanged:(NSNotification *)notification
 {
-  _paused = YES;
+  if(![self isAirPlayActive]) {
+    _paused = YES;
+  }
   NSNumber *reason = [[notification userInfo] objectForKey:AVAudioSessionRouteChangeReasonKey];
   NSNumber *previousRoute = [[notification userInfo] objectForKey:AVAudioSessionRouteChangePreviousRouteKey];
   if(!CMTIME_IS_INVALID(_playerCurrentTime)) {
@@ -494,7 +505,9 @@ static int const RCTVideoUnset = -1;
   if (reason.unsignedIntValue == AVAudioSessionRouteChangeReasonOldDeviceUnavailable) {
     self.onVideoAudioBecomingNoisy(@{@"target": self.reactTag});
   }
-  [_player pause];
+  if(![self isAirPlayActive]) {
+    [_player pause];
+  }
 }
 
 #pragma mark - Progress

@@ -1740,7 +1740,7 @@ didCancelLoadingRequest:(AVAssetResourceLoadingRequest *)loadingRequest {
               }
               if (spcData != nil) {
                 if(self.onGetLicense) {
-                  NSString *spcStr = [[NSString alloc] initWithData:spcData encoding:NSDataBase64DecodingIgnoreUnknownCharacters];
+                  NSString *spcStr = [spcData base64EncodedStringWithOptions:0];
                   self->_requestingCertificate = YES;
                   self.onGetLicense(@{@"spc": spcStr,
                                       @"target": self.reactTag});

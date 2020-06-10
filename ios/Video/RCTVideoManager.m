@@ -8,9 +8,12 @@
 
 RCT_EXPORT_MODULE();
 
+RCTVideo * _video;
+
 - (UIView *)view
 {
-  return [[RCTVideo alloc] initWithEventDispatcher:self.bridge.eventDispatcher];
+    _video = [[RCTVideo alloc] initWithEventDispatcher:self.bridge.eventDispatcher];
+    return _video;
 }
 
 - (dispatch_queue_t)methodQueue
@@ -20,6 +23,7 @@ RCT_EXPORT_MODULE();
 
 RCT_EXPORT_VIEW_PROPERTY(src, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(drm, NSDictionary);
+RCT_EXPORT_VIEW_PROPERTY(shahidYouboraOptions, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(maxBitRate, float);
 RCT_EXPORT_VIEW_PROPERTY(resizeMode, NSString);
 RCT_EXPORT_VIEW_PROPERTY(repeat, BOOL);
@@ -67,6 +71,9 @@ RCT_EXPORT_VIEW_PROPERTY(onPlaybackResume, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onPlaybackRateChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onVideoExternalPlaybackChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onGetLicense, RCTDirectEventBlock);
+RCT_EXPORT_METHOD(stop){
+    [_video stop];
+}
 RCT_REMAP_METHOD(save,
         options:(NSDictionary *)options
         reactTag:(nonnull NSNumber *)reactTag

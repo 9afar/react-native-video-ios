@@ -10,14 +10,15 @@ Pod::Spec.new do |s|
   s.license        = package['license']
   s.author         = package['author']
   s.homepage       = 'https://github.com/brentvatne/react-native-video'
-  s.source       = { :git => "https://github.com/brentvatne/react-native-video.git", :tag => "#{s.version}" }
+  s.source         = { :git => "https://github.com/brentvatne/react-native-video.git", :tag => "#{s.version}" }
+  s.platform       = :tvos
 
-  s.ios.deployment_target = "8.0"
   s.tvos.deployment_target = "9.0"
 
   s.subspec "Video" do |ss|
     ss.dependency "YouboraAVPlayerAdapter", "6.3.3"
     ss.dependency "YouboraLib", "6.3.9"
+    ss.dependency "GoogleAds-IMA-tvOS-SDK", "4.3.1"
     ss.source_files  = "ios/Video/*.{h,m}"
     s.static_framework = true
   end

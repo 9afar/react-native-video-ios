@@ -43,6 +43,7 @@
 @property (nonatomic, copy) RCTDirectEventBlock onPictureInPictureStatusChanged;
 @property (nonatomic, copy) RCTDirectEventBlock onRestoreUserInterfaceForPictureInPictureStop;
 @property (nonatomic, copy) RCTDirectEventBlock onGetLicense;
+@property (nonatomic, copy) RCTDirectEventBlock onAdEvent;
 
 typedef NS_ENUM(NSInteger, RCTVideoError) {
     RCTVideoErrorFromJSPart,

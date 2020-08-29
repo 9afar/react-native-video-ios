@@ -463,6 +463,7 @@ static int const RCTVideoUnset = -1;
         ybOptions.customDimension5 = [self->_shahidYouboraOptions objectForKey:@"extraparam.5"];
         ybOptions.customDimension6 = [self->_shahidYouboraOptions objectForKey:@"extraparam.6"];
         ybOptions.customDimension7 = [self->_shahidYouboraOptions objectForKey:@"extraparam.7"];
+        ybOptions.customDimension8 = [self->_shahidYouboraOptions objectForKey:@"extraparam.8"];
 
         [YBLog setDebugLevel:YBLogLevelVerbose];
         self->_youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];

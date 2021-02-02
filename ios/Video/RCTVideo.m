@@ -6,6 +6,7 @@
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
 #import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>
+#import <CoreMedia/CoreMedia.h>
 
 @interface CustomAdapter : YBAVPlayerAdapter
   @property NSDictionary *customArguments;

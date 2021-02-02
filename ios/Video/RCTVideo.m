@@ -109,6 +109,7 @@ static int const RCTVideoUnset = -1;
   NSDictionary *_shahidYouboraOptions;
   YBPlugin * _youboraPlugin;
   CustomAdapter * _adapter;
+  float _paddingBottomTrack;
 
 #if __has_include(<react-native-video/RCTVideoCache.h>)
   RCTVideoCache * _videoCache;
@@ -492,6 +493,10 @@ static int const RCTVideoUnset = -1;
 
 - (void)setDrm:(NSDictionary *)drm {
   _drm = drm;
+}
+
+- (void)setPaddingBottomTrack:(float)paddingBottomTrack {
+  _paddingBottomTrack = paddingBottomTrack;
 }
 
 - (void)setShahidYouboraOptions:(NSDictionary *)youboraOptions {
@@ -1182,6 +1187,12 @@ static int const RCTVideoUnset = -1;
   } else { // text tracks included in the HLS playlist
     [self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicLegible
                                      withCriteria:_selectedTextTrack];
+  }
+  if(_player != nil && _player.currentItem != nil && _paddingBottomTrack > 0){
+    NSInteger positionFromTop = 100 - _paddingBottomTrack;
+    AVTextStyleRule *rule = [[AVTextStyleRule alloc] initWithTextMarkupAttributes:@{
+      (id)kCMTextMarkupAttribute_OrthogonalLinePositionPercentageRelativeToWritingDirection : @(positionFromTop)}];
+    _player.currentItem.textStyleRules = @[rule];
   }
 }
 

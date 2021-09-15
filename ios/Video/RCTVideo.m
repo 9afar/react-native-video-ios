@@ -498,6 +498,16 @@ static int const RCTVideoUnset = -1;
 
 - (void)setPaddingBottomTrack:(float)paddingBottomTrack {
   _paddingBottomTrack = paddingBottomTrack;
+  [self updateSubtitleStyle];
+}
+
+- (void)updateSubtitleStyle {
+  if(_paddingBottomTrack >= 0){
+    NSInteger paddingBottom = 100 - _paddingBottomTrack;
+    AVTextStyleRule *rule = [[AVTextStyleRule alloc] initWithTextMarkupAttributes:@{
+      (id)kCMTextMarkupAttribute_OrthogonalLinePositionPercentageRelativeToWritingDirection : @(paddingBottom)}];
+    _player.currentItem.textStyleRules = @[rule];
+  }
 }
 
 - (void)setShahidYouboraOptions:(NSDictionary *)youboraOptions {
@@ -1190,10 +1200,7 @@ static int const RCTVideoUnset = -1;
                                      withCriteria:_selectedTextTrack];
   }
   if(_player != nil && _player.currentItem != nil && _paddingBottomTrack > 0){
-    NSInteger positionFromTop = 100 - _paddingBottomTrack;
-    AVTextStyleRule *rule = [[AVTextStyleRule alloc] initWithTextMarkupAttributes:@{
-      (id)kCMTextMarkupAttribute_OrthogonalLinePositionPercentageRelativeToWritingDirection : @(positionFromTop)}];
-    _player.currentItem.textStyleRules = @[rule];
+    [self updateSubtitleStyle];
   }
 }
 

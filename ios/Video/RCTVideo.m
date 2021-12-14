@@ -493,7 +493,7 @@ static int const RCTVideoUnset = -1;
         AVMutableMetadataItem *metaTitle = [[AVMutableMetadataItem alloc ] init];
         [metaTitle setIdentifier:AVMetadataCommonIdentifierArtwork];
         [metaTitle setExtendedLanguageTag:language];
-        [metaTitle setValue:[self->_shahidYouboraOptions objectForKey:@"program"]];
+        [metaTitle setValue:[self->_shahidYouboraOptions objectForKey:@"title"]];
     
         AVMutableMetadataItem *metaContentId = [[AVMutableMetadataItem alloc ] init];
         [metaContentId setExtendedLanguageTag:language];

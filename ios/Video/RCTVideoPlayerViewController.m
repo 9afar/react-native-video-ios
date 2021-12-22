@@ -21,6 +21,21 @@
   [_rctDelegate videoPlayerViewControllerDidDismiss:self];
 }
 
+- (void)viewWillAppear:(BOOL)animated
+{
+  [super viewWillAppear:animated];
+    if (@available(tvOS 13.0, *)) {
+        self.userActivity = [[NSUserActivity alloc] initWithActivityType:@"net.mbc.shahidtvOS"];
+        self.userActivity.targetContentIdentifier = self.contentId;
+        [self.userActivity becomeCurrent];
+    }
+}
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    [self.userActivity invalidate];
+}
+
 #if !TARGET_OS_TV
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
   return UIInterfaceOrientationMaskAll;

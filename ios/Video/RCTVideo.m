@@ -190,7 +190,10 @@ static int const RCTVideoUnset = -1;
   viewController.showsPlaybackControls = YES;
   viewController.rctDelegate = self;
   viewController.preferredOrientation = _fullscreenOrientation;
-
+    if(self->_shahidYouboraOptions){
+        NSString *contentId = [self->_shahidYouboraOptions objectForKey:@"contentId"];
+        viewController.contentId = contentId;
+    }
   viewController.view.frame = self.bounds;
   viewController.player = player;
   return viewController;
@@ -445,6 +448,9 @@ static int const RCTVideoUnset = -1;
     dispatch_async(dispatch_get_main_queue(), ^{
       YBOptions *ybOptions = [YBOptions new];
          NSLog(@"==== set adapter");
+        NSString *language = [self->_shahidYouboraOptions objectForKey:@"extraparam.8"];
+        NSString *contentId = [self->_shahidYouboraOptions objectForKey:@"contentId"];
+
         ybOptions.accountCode = [self->_shahidYouboraOptions objectForKey:@"accountCode"];;
         ybOptions.username = [self->_shahidYouboraOptions objectForKey:@"username"];
         ybOptions.contentTitle = [self->_shahidYouboraOptions objectForKey:@"title"];
@@ -465,7 +471,7 @@ static int const RCTVideoUnset = -1;
         ybOptions.customDimension5 = [self->_shahidYouboraOptions objectForKey:@"extraparam.5"];
         ybOptions.customDimension6 = [self->_shahidYouboraOptions objectForKey:@"extraparam.6"];
         ybOptions.customDimension7 = [self->_shahidYouboraOptions objectForKey:@"extraparam.7"];
-        ybOptions.customDimension8 = [self->_shahidYouboraOptions objectForKey:@"extraparam.8"];
+        ybOptions.customDimension8 = language;
 
         [YBLog setDebugLevel:YBLogLevelVerbose];
         self->_youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
@@ -476,7 +482,7 @@ static int const RCTVideoUnset = -1;
         @"contentPlaybackType": [self->_shahidYouboraOptions objectForKey:@"contentPlaybackType"],
         @"contentSeason": [self->_shahidYouboraOptions objectForKey:@"season"],
         @"tvshow": [self->_shahidYouboraOptions objectForKey:@"tvShow"] ,
-        @"contentId": [self->_shahidYouboraOptions objectForKey:@"contentId"],
+        @"contentId": contentId,
         @"contentType": [self->_shahidYouboraOptions objectForKey:@"contentType"],
         @"drm":  [[self->_shahidYouboraOptions objectForKey:@"contentDrm"] isEqualToNumber: @1]  ? @"true" : @"false",
         @"contentGenre": [self->_shahidYouboraOptions objectForKey:@"contentGenre"],
@@ -484,6 +490,25 @@ static int const RCTVideoUnset = -1;
         @"rendition": [self->_shahidYouboraOptions objectForKey:@"rendition"],
         @"contentChannel":  [ self->_shahidYouboraOptions objectForKey:@"contentChannels" ],
        };
+        AVMutableMetadataItem *metaTitle = [[AVMutableMetadataItem alloc ] init];
+        [metaTitle setIdentifier:AVMetadataCommonIdentifierArtwork];
+        [metaTitle setExtendedLanguageTag:language];
+        [metaTitle setValue:[self->_shahidYouboraOptions objectForKey:@"title"]];
+    
+        AVMutableMetadataItem *metaContentId = [[AVMutableMetadataItem alloc ] init];
+        [metaContentId setExtendedLanguageTag:language];
+        [metaContentId setValue:contentId];
+        
+        AVMutableMetadataItem *metaPlaybackProgress = [[AVMutableMetadataItem alloc ] init];
+        if (@available(tvOS 10.1, *)) {
+            [metaContentId setIdentifier:AVKitMetadataIdentifierExternalContentIdentifier];
+            [metaPlaybackProgress setIdentifier:AVKitMetadataIdentifierPlaybackProgress];
+        } else {
+            [metaContentId setIdentifier:@"NPI/_MPNowPlayingInfoPropertyExternalContentIdentifier" ];
+        }
+        [metaPlaybackProgress setExtendedLanguageTag:language];
+        [metaPlaybackProgress setValue:0];
+        [self->_playerItem  setExternalMetadata:@[metaTitle , metaContentId , metaPlaybackProgress]];
 
     });
    }

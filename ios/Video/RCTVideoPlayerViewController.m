@@ -25,7 +25,7 @@
 {
   [super viewWillAppear:animated];
     if (@available(tvOS 13.0, *)) {
-        self.userActivity = [[NSUserActivity alloc] initWithActivityType:@"net.mbc.shahidtvOS"];
+        self.userActivity = [[NSUserActivity alloc] initWithActivityType:@"net.mbc.shahid-iphone"];
         self.userActivity.targetContentIdentifier = self.contentId;
         [self.userActivity becomeCurrent];
     }

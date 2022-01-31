@@ -259,6 +259,9 @@ export default class Video extends Component {
   stop = () => {
     NativeModules.VideoManager.stop();
   }
+  setYouboraError = (error) => {
+    NativeModules.VideoManager.setYouboraError(error);
+  }
   render() {
     const resizeMode = this.props.resizeMode;
     const source = resolveAssetSource(this.props.source) || {};

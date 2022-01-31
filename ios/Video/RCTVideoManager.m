@@ -75,6 +75,10 @@ RCT_EXPORT_VIEW_PROPERTY(onGetLicense, RCTDirectEventBlock);
 RCT_EXPORT_METHOD(stop){
     [_video stop];
 }
+RCT_REMAP_METHOD(setYouboraError,
+                error:(NSDictionary *)error){
+    [_video setYouboraError:error];
+}
 RCT_REMAP_METHOD(save,
         options:(NSDictionary *)options
         reactTag:(nonnull NSNumber *)reactTag

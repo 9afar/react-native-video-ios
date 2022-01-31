@@ -39,6 +39,7 @@ static NSString *const readyForDisplayKeyPath = @"readyForDisplay";
 static NSString *const playbackRate = @"rate";
 static NSString *const timedMetadata = @"timedMetadata";
 static NSString *const externalPlaybackActive = @"externalPlaybackActive";
+static YBPlugin *youboraPlugin = nil;
 
 static int const RCTVideoUnset = -1;
 
@@ -108,7 +109,6 @@ static int const RCTVideoUnset = -1;
   BOOL _filterEnabled;
   UIViewController * _presentingViewController;
   NSDictionary *_shahidYouboraOptions;
-  YBPlugin * _youboraPlugin;
   CustomAdapter * _adapter;
   float _paddingBottomTrack;
 
@@ -183,6 +183,21 @@ static int const RCTVideoUnset = -1;
 //        self->_player = nil;
          [self->_adapter fireStop];
      });
+}
+- (void)setYouboraError:(NSDictionary *)error
+{
+         if(youboraPlugin != nil){
+             NSString *msg =[error objectForKey:@"message"];
+             NSString *code =[error objectForKey:@"code"];
+             NSString *playHead = [[youboraPlugin getPlayhead] stringValue];
+             NSString *src = [self->_source objectForKey:@"uri"];
+             [youboraPlugin fireErrorWithParams:@{
+                @"playhead":playHead,
+                @"msg":msg,
+                @"errorCode":code,
+                @"mediaResource":src
+             }];
+          }
 }
 - (RCTVideoPlayerViewController*)createPlayerViewController:(AVPlayer*)player
                                              withPlayerItem:(AVPlayerItem*)playerItem {
@@ -444,7 +459,13 @@ static int const RCTVideoUnset = -1;
 
 
     // check if this is the first chunk
-   if(self->_shahidYouboraOptions != nil) {
+   if (self->_shahidYouboraOptions == nil){
+      if (youboraPlugin != nil) {
+          [youboraPlugin removeAdapter];
+          youboraPlugin = nil;
+        }
+      return;
+   } else  {
     dispatch_async(dispatch_get_main_queue(), ^{
       YBOptions *ybOptions = [YBOptions new];
          NSLog(@"==== set adapter");
@@ -474,9 +495,13 @@ static int const RCTVideoUnset = -1;
         ybOptions.customDimension8 = language;
 
         [YBLog setDebugLevel:YBLogLevelVerbose];
-        self->_youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
-        self->_adapter = [[CustomAdapter alloc] initWithPlayer:self->_player];
-        [self->_youboraPlugin setAdapter:self->_adapter];
+       if (youboraPlugin == nil) {
+         youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
+       }else{
+         [youboraPlugin setOptions:ybOptions];
+       }
+       self->_adapter = [[CustomAdapter alloc] initWithPlayer:self->_player];
+       [youboraPlugin setAdapter:self->_adapter];
 
        self->_adapter.customArguments = @{
         @"contentPlaybackType": [self->_shahidYouboraOptions objectForKey:@"contentPlaybackType"],

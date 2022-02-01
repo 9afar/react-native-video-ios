@@ -25,6 +25,11 @@
      [super fireStop:params];
     self.supportPlaylists = NO;
 }
+//Stop Error Listner from YBadapter
+- (void) fireErrorWithMessage:(nullable NSString *) msg code:(nullable NSString *) code andMetadata:(nullable NSString *) errorMetadata {
+}
+- (void) sendError:(NSError *) error {
+}
 @end
 
 
@@ -40,6 +45,7 @@ static NSString *const playbackRate = @"rate";
 static NSString *const timedMetadata = @"timedMetadata";
 static NSString *const externalPlaybackActive = @"externalPlaybackActive";
 static YBPlugin *youboraPlugin = nil;
+static CustomAdapter * _adapter = nil;
 
 static int const RCTVideoUnset = -1;
 
@@ -109,7 +115,6 @@ static int const RCTVideoUnset = -1;
   BOOL _filterEnabled;
   UIViewController * _presentingViewController;
   NSDictionary *_shahidYouboraOptions;
-  CustomAdapter * _adapter;
   float _paddingBottomTrack;
 
 #if __has_include(<react-native-video/RCTVideoCache.h>)
@@ -181,7 +186,8 @@ static int const RCTVideoUnset = -1;
 //         self->_playerItem = nil;
 //        [self->_player replaceCurrentItemWithPlayerItem:nil];
 //        self->_player = nil;
-         [self->_adapter fireStop];
+         [_adapter fireStop];
+         _adapter = nil;
      });
 }
 - (void)setYouboraError:(NSDictionary *)error
@@ -463,6 +469,7 @@ static int const RCTVideoUnset = -1;
       if (youboraPlugin != nil) {
           [youboraPlugin removeAdapter];
           youboraPlugin = nil;
+          _adapter= nil;
         }
       return;
    } else  {
@@ -495,35 +502,38 @@ static int const RCTVideoUnset = -1;
         ybOptions.customDimension8 = language;
 
         [YBLog setDebugLevel:YBLogLevelVerbose];
-       if (youboraPlugin == nil) {
-         youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
-       }else{
-         [youboraPlugin setOptions:ybOptions];
-       }
-       self->_adapter = [[CustomAdapter alloc] initWithPlayer:self->_player];
-       [youboraPlugin setAdapter:self->_adapter];
+         if (youboraPlugin == nil) {
+           youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
+         }else{
+           [youboraPlugin setOptions:ybOptions];
+         }
 
-       self->_adapter.customArguments = @{
-        @"contentPlaybackType": [self->_shahidYouboraOptions objectForKey:@"contentPlaybackType"],
-        @"contentSeason": [self->_shahidYouboraOptions objectForKey:@"season"],
-        @"tvshow": [self->_shahidYouboraOptions objectForKey:@"tvShow"] ,
-        @"contentId": contentId,
-        @"contentType": [self->_shahidYouboraOptions objectForKey:@"contentType"],
-        @"drm":  [[self->_shahidYouboraOptions objectForKey:@"contentDrm"] isEqualToNumber: @1]  ? @"true" : @"false",
-        @"contentGenre": [self->_shahidYouboraOptions objectForKey:@"contentGenre"],
-        @"contentLanguage": [self->_shahidYouboraOptions objectForKey:@"contentLanguage"],
-        @"rendition": [self->_shahidYouboraOptions objectForKey:@"rendition"],
-        @"contentChannel":  [ self->_shahidYouboraOptions objectForKey:@"contentChannels" ],
-       };
+        if(!_adapter){
+            _adapter = [[CustomAdapter alloc] initWithPlayer:self->_player];
+            [youboraPlugin setAdapter:_adapter];
+            _adapter.customArguments = @{
+            @"contentPlaybackType": [self->_shahidYouboraOptions objectForKey:@"contentPlaybackType"],
+            @"contentSeason": [self->_shahidYouboraOptions objectForKey:@"season"],
+            @"tvshow": [self->_shahidYouboraOptions objectForKey:@"tvShow"] ,
+            @"contentId": contentId,
+            @"contentType": [self->_shahidYouboraOptions objectForKey:@"contentType"],
+            @"drm":  [[self->_shahidYouboraOptions objectForKey:@"contentDrm"] isEqualToNumber: @1]  ? @"true" : @"false",
+            @"contentGenre": [self->_shahidYouboraOptions objectForKey:@"contentGenre"],
+            @"contentLanguage": [self->_shahidYouboraOptions objectForKey:@"contentLanguage"],
+            @"rendition": [self->_shahidYouboraOptions objectForKey:@"rendition"],
+            @"contentChannel":  [ self->_shahidYouboraOptions objectForKey:@"contentChannels" ],
+           };
+           [_adapter fireStart];
+        }
         AVMutableMetadataItem *metaTitle = [[AVMutableMetadataItem alloc ] init];
         [metaTitle setIdentifier:AVMetadataCommonIdentifierArtwork];
         [metaTitle setExtendedLanguageTag:language];
         [metaTitle setValue:[self->_shahidYouboraOptions objectForKey:@"title"]];
-    
+
         AVMutableMetadataItem *metaContentId = [[AVMutableMetadataItem alloc ] init];
         [metaContentId setExtendedLanguageTag:language];
         [metaContentId setValue:contentId];
-        
+
         AVMutableMetadataItem *metaPlaybackProgress = [[AVMutableMetadataItem alloc ] init];
         if (@available(tvOS 10.1, *)) {
             [metaContentId setIdentifier:AVKitMetadataIdentifierExternalContentIdentifier];
@@ -1417,7 +1427,7 @@ static int const RCTVideoUnset = -1;
     }
     NSString *threeLanguage = [currentOption extendedLanguageTag] ? [currentOption extendedLanguageTag] : @"";
     NSString *language = [[currentOption locale] languageCode] ?[[currentOption locale] languageCode]  : @"";
-    
+
     NSDictionary *textTrack = @{
                                 @"index": [NSNumber numberWithInt:i],
                                 @"title": title,

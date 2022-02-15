@@ -7,6 +7,7 @@
 #include <AVFoundation/AVFoundation.h>
 #import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>
 #import <CoreMedia/CoreMedia.h>
+#import "ChannelsViewController.h"
 
 @interface CustomAdapter : YBAVPlayerAdapter
   @property NSDictionary *customArguments;
@@ -68,6 +69,7 @@ static int const RCTVideoUnset = -1;
 
   /* Required to publish events */
   RCTEventDispatcher *_eventDispatcher;
+    ChannelsViewController *_channelsTab;
   BOOL _playbackRateObserverRegistered;
   BOOL _isExternalPlaybackActiveObserverRegistered;
   BOOL _videoLoadStarted;
@@ -108,6 +110,8 @@ static int const RCTVideoUnset = -1;
   BOOL _filterEnabled;
   UIViewController * _presentingViewController;
   NSDictionary *_shahidYouboraOptions;
+    NSDictionary *_playerMetaData;
+    BOOL _disableSeek;
   YBPlugin * _youboraPlugin;
   CustomAdapter * _adapter;
   float _paddingBottomTrack;
@@ -183,6 +187,48 @@ static int const RCTVideoUnset = -1;
 //        self->_player = nil;
          [self->_adapter fireStop];
      });
+}
+- (void)skipIntro:(UIButton*)sender
+{
+    if(self.onSkipIntro) {
+        self.onSkipIntro(@{@"target": self.reactTag});
+    }
+}
+- (void)toggleSkipVisbility:(BOOL)toggle{
+
+    dispatch_sync(dispatch_get_main_queue(), ^{
+
+        if (@available(tvOS 13.0, *)) {
+            if (toggle) {
+                if (@available(tvOS 15.0, *)) {
+                    UIAction *skipAction =  [UIAction actionWithTitle:NSLocalizedString(@"SkipIntro", nil)
+                                                                image:nil identifier:nil handler:^(UIAction* action){
+                        if(self.onSkipIntro) {
+                            self.onSkipIntro(@{@"target": self.reactTag});
+                        }
+                    }];
+                    self->_playerViewController.contextualActions=@[skipAction];
+                } else {
+                    UIButton *button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+                    button.frame =  CGRectMake(1600, 990, 250, 70.0);
+                    [button setTitle:NSLocalizedString(@"SkipIntro", nil) forState:UIControlStateNormal];
+                    [button.titleLabel setFont:[UIFont fontWithName:@"Helvetica-Bold" size:30]];
+                    [button addTarget:self action:@selector(skipIntro:) forControlEvents:UIControlEventAllEvents];
+                    [button preferredFocusEnvironments];
+                    UIViewController *viewControllerSkip = [UIViewController alloc];
+                    [viewControllerSkip.view addSubview:button ];
+                    viewControllerSkip.modalPresentationStyle=UIModalPresentationOverFullScreen;
+                    [_playerViewController presentViewController:viewControllerSkip animated:YES completion:nil];
+                }
+            } else {
+                if (@available(tvOS 15.0, *)) {
+                    self->_playerViewController.contextualActions=@[];
+                } else {
+                    [_playerViewController dismissViewControllerAnimated:YES completion:nil];
+                }
+            }
+        }
+    });
 }
 - (RCTVideoPlayerViewController*)createPlayerViewController:(AVPlayer*)player
                                              withPlayerItem:(AVPlayerItem*)playerItem {
@@ -315,18 +361,36 @@ static int const RCTVideoUnset = -1;
   const Float64 duration = CMTimeGetSeconds(playerDuration);
   const Float64 currentTimeSecs = CMTimeGetSeconds(currentTime);
 
-  [[NSNotificationCenter defaultCenter] postNotificationName:@"RCTVideo_progress" object:nil userInfo:@{@"progress": [NSNumber numberWithDouble: currentTimeSecs / duration]}];
+    bool adsBreak = false;
+    if(_playerItem.interstitialTimeRanges){
+         for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
+            if (CMTimeRangeContainsTime(interstitialRange.timeRange,currentTime)){
+                adsBreak= true;
+            }
+        }
+    }
+    if(!adsBreak){
+          [[NSNotificationCenter defaultCenter] postNotificationName:@"RCTVideo_progress" object:nil userInfo:@{@"progress": [NSNumber numberWithDouble: currentTimeSecs / duration]}];
 
-  if( currentTimeSecs >= 0 && self.onVideoProgress) {
-    self.onVideoProgress(@{
-                           @"currentTime": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
-                           @"playableDuration": [self calculatePlayableDuration],
-                           @"atValue": [NSNumber numberWithLongLong:currentTime.value],
-                           @"atTimescale": [NSNumber numberWithInt:currentTime.timescale],
-                           @"target": self.reactTag,
-                           @"seekableDuration": [self calculateSeekableDuration],
-                           });
-  }
+          if( currentTimeSecs >= 0 && self.onVideoProgress) {
+              self.onVideoProgress(@{
+                  @"currentTime": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
+                  @"playableDuration": [self calculatePlayableDuration],
+                  @"atValue": [NSNumber numberWithLongLong:currentTime.value],
+                  @"atTimescale": [NSNumber numberWithInt:currentTime.timescale],
+                  @"target": self.reactTag,
+                  @"seekableDuration": [self calculateSeekableDuration],
+              });
+          }
+    }else if( currentTimeSecs >= 0 && self.onVideoProgress){
+          self.onAdEvent(@{
+              @"data": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
+              @"type": @"AdProgress",
+              @"atValue": [NSNumber numberWithLongLong:currentTime.value],
+              @"atTimescale": [NSNumber numberWithInt:currentTime.timescale],
+              @"target": self.reactTag,
+          });
+      }
 }
 
 /*!
@@ -447,9 +511,6 @@ static int const RCTVideoUnset = -1;
    if(self->_shahidYouboraOptions != nil) {
     dispatch_async(dispatch_get_main_queue(), ^{
       YBOptions *ybOptions = [YBOptions new];
-         NSLog(@"==== set adapter");
-        NSString *language = [self->_shahidYouboraOptions objectForKey:@"extraparam.8"];
-        NSString *contentId = [self->_shahidYouboraOptions objectForKey:@"contentId"];
 
         ybOptions.accountCode = [self->_shahidYouboraOptions objectForKey:@"accountCode"];;
         ybOptions.username = [self->_shahidYouboraOptions objectForKey:@"username"];
@@ -471,7 +532,7 @@ static int const RCTVideoUnset = -1;
         ybOptions.customDimension5 = [self->_shahidYouboraOptions objectForKey:@"extraparam.5"];
         ybOptions.customDimension6 = [self->_shahidYouboraOptions objectForKey:@"extraparam.6"];
         ybOptions.customDimension7 = [self->_shahidYouboraOptions objectForKey:@"extraparam.7"];
-        ybOptions.customDimension8 = language;
+                    ybOptions.customDimension8 = [self->_shahidYouboraOptions objectForKey:@"extraparam.8"];
 
         [YBLog setDebugLevel:YBLogLevelVerbose];
         self->_youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
@@ -482,7 +543,7 @@ static int const RCTVideoUnset = -1;
         @"contentPlaybackType": [self->_shahidYouboraOptions objectForKey:@"contentPlaybackType"],
         @"contentSeason": [self->_shahidYouboraOptions objectForKey:@"season"],
         @"tvshow": [self->_shahidYouboraOptions objectForKey:@"tvShow"] ,
-        @"contentId": contentId,
+        @"contentId": [self->_shahidYouboraOptions objectForKey:@"contentId"],
         @"contentType": [self->_shahidYouboraOptions objectForKey:@"contentType"],
         @"drm":  [[self->_shahidYouboraOptions objectForKey:@"contentDrm"] isEqualToNumber: @1]  ? @"true" : @"false",
         @"contentGenre": [self->_shahidYouboraOptions objectForKey:@"contentGenre"],
@@ -490,26 +551,6 @@ static int const RCTVideoUnset = -1;
         @"rendition": [self->_shahidYouboraOptions objectForKey:@"rendition"],
         @"contentChannel":  [ self->_shahidYouboraOptions objectForKey:@"contentChannels" ],
        };
-        AVMutableMetadataItem *metaTitle = [[AVMutableMetadataItem alloc ] init];
-        [metaTitle setIdentifier:AVMetadataCommonIdentifierArtwork];
-        [metaTitle setExtendedLanguageTag:language];
-        [metaTitle setValue:[self->_shahidYouboraOptions objectForKey:@"title"]];
-    
-        AVMutableMetadataItem *metaContentId = [[AVMutableMetadataItem alloc ] init];
-        [metaContentId setExtendedLanguageTag:language];
-        [metaContentId setValue:contentId];
-        
-        AVMutableMetadataItem *metaPlaybackProgress = [[AVMutableMetadataItem alloc ] init];
-        if (@available(tvOS 10.1, *)) {
-            [metaContentId setIdentifier:AVKitMetadataIdentifierExternalContentIdentifier];
-            [metaPlaybackProgress setIdentifier:AVKitMetadataIdentifierPlaybackProgress];
-        } else {
-            [metaContentId setIdentifier:@"NPI/_MPNowPlayingInfoPropertyExternalContentIdentifier" ];
-        }
-        [metaPlaybackProgress setExtendedLanguageTag:language];
-        [metaPlaybackProgress setValue:0];
-        [self->_playerItem  setExternalMetadata:@[metaTitle , metaContentId , metaPlaybackProgress]];
-
     });
    }
     }];
@@ -538,7 +579,14 @@ static int const RCTVideoUnset = -1;
 - (void)setShahidYouboraOptions:(NSDictionary *)youboraOptions {
   _shahidYouboraOptions = youboraOptions;
 }
-
+- (void)setPlayerMetaData:(NSDictionary *)playerMetaData {
+    _playerMetaData = playerMetaData;
+}
+- (void)setDisableSeek:(BOOL)disableSeek {
+    _playerViewController.requiresLinearPlayback= disableSeek;
+    [self UIVewSetDisableSeek:disableSeek];
+    _disableSeek = disableSeek;
+}
 - (NSURL*) urlFilePath:(NSString*) filepath {
   if ([filepath containsString:@"file://"]) {
     return [NSURL URLWithString:filepath];
@@ -1082,7 +1130,21 @@ static int const RCTVideoUnset = -1;
     // TODO figure out a good tolerance level
     CMTime tolerance = CMTimeMake([seekTolerance floatValue], timeScale);
     BOOL wasPaused = _paused;
-
+        if(_playerItem.interstitialTimeRanges){
+            AVInterstitialTimeRange *interstitialMatched;
+            for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
+                if ([seekTime longLongValue] >= interstitialRange.timeRange.start.value){
+                    interstitialMatched = interstitialRange;
+                }
+            }
+            // Handle interstitial with CW seek
+            if(interstitialMatched){
+                [self setPendingSeek:[seekTime floatValue]];
+                [self setSelectedInterstitialCW:interstitialMatched];
+                cmSeekTime = CMTimeMakeWithSeconds(interstitialMatched.timeRange.start.value,
+                                                   timeScale);
+            }
+        }
     if (CMTimeCompare(current, cmSeekTime) != 0) {
       if (!wasPaused) [_player pause];
       [_player seekToTime:cmSeekTime toleranceBefore:tolerance toleranceAfter:tolerance completionHandler:^(BOOL finished) {
@@ -1392,7 +1454,7 @@ static int const RCTVideoUnset = -1;
     }
     NSString *threeLanguage = [currentOption extendedLanguageTag] ? [currentOption extendedLanguageTag] : @"";
     NSString *language = [[currentOption locale] languageCode] ?[[currentOption locale] languageCode]  : @"";
-    
+
     NSDictionary *textTrack = @{
                                 @"index": [NSNumber numberWithInt:i],
                                 @"title": title,
@@ -1469,7 +1531,207 @@ static int const RCTVideoUnset = -1;
     _playerViewController.preferredOrientation = orientation;
   }
 }
+- (void)handleMediaSelectionChange:(NSNotification *)notification {
+    AVPlayerItem *playerItem = (AVPlayerItem *)notification.object;
+    if([playerItem.asset isKindOfClass:[AVURLAsset class]]){
+        AVURLAsset *asset = (AVURLAsset *)playerItem.asset;
+        AVMediaSelectionGroup *audio = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicAudible];
+        AVMediaSelectionGroup *subtitles = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicLegible];
+        AVMediaSelectionOption *selectedAudio = [playerItem.currentMediaSelection selectedMediaOptionInMediaSelectionGroup:audio];
+        AVMediaSelectionOption *selectedSubtitles = [playerItem.currentMediaSelection selectedMediaOptionInMediaSelectionGroup:subtitles];
+        if(self.onMediaSelectionChange){
+            self.onMediaSelectionChange(@{
+                @"videoSelectedAudio" : @{
+                    @"name"  :[selectedAudio displayName] ? [selectedAudio displayName]  : @"",
+                    @"language": [selectedAudio extendedLanguageTag] ?  [selectedAudio extendedLanguageTag]:@""
+                },
+                @"videoSelectedSubtitle": @{
+                    @"name"  :[selectedSubtitles displayName] ? [selectedSubtitles displayName]  : @"",
+                    @"language": [selectedSubtitles extendedLanguageTag] ?  [selectedSubtitles extendedLanguageTag]:@"off"
+                },
+                @"target": self.reactTag
+            });
+        }
+    }
+}
 
+- (NSArray*)makeInterstitialTimeRanges{
+
+
+    // Present 1 minute of advertisements 10 minutes into the video.
+
+//    CMTimeRange *timeRange2 = CMTimeRange(start: CMTime(value: 600, timescale: 1),
+//                                 duration: CMTime(value: 60, timescale: 1))
+    // Return an array of AVInterstitialTimeRange objects.
+    AVInterstitialTimeRange *AVtimeRange1 = [[AVInterstitialTimeRange alloc] initWithTimeRange:CMTimeRangeMake(kCMTimeZero,CMTimeMake(30,1))];
+    AVInterstitialTimeRange *AVtimeRange2 = [[AVInterstitialTimeRange alloc] initWithTimeRange:CMTimeRangeMake(CMTimeMake(900,1),CMTimeMake(30,1))];
+
+//    AVInterstitialTimeRange *AVtimeRange3 = [[AVInterstitialTimeRange alloc] initWithTimeRange:CMTimeRangeMake(CMTimeMake(1000,1),CMTimeMake(30,1))];
+
+      return @[
+          AVtimeRange1,
+          AVtimeRange2
+//          AVtimeRange3
+
+      ];
+}
+- (ChannelsViewController*) prepareChannelsViewController{
+    NSArray *channels = [_playerMetaData objectForKey:@"channels"];
+    NSString *contentId = [_playerMetaData objectForKey:@"id"];
+
+    UICollectionViewFlowLayout *flowLayout = [[UICollectionViewFlowLayout alloc] init];
+    flowLayout.minimumInteritemSpacing= 200;
+    flowLayout.sectionInset = UIEdgeInsetsMake(30,30,30,30);
+    flowLayout.itemSize = CGSizeMake(342, 230);
+    [flowLayout setScrollDirection:UICollectionViewScrollDirectionHorizontal];
+
+    _channelsTab = [[ChannelsViewController alloc] initWithCollectionViewLayout:flowLayout];
+    _channelsTab.channels = channels;
+    _channelsTab.onChannelSelect = self.onChannelSelect;
+    _channelsTab.currentChannelId = contentId;
+    _channelsTab.title=NSLocalizedString(@"Channels", nil);
+    _channelsTab.preferredContentSize=CGSizeMake(800, 300);
+    return _channelsTab;
+}
+- (void)setShowChannels:(BOOL) showChannels {
+    @try{
+        if(!_playerViewController){
+            [self usePlayerViewController];
+        }
+        if(showChannels){
+            if(!_channelsTab){
+                _channelsTab =[self prepareChannelsViewController];
+            }
+            NSLog(@"_channelsTab %@", _channelsTab);
+            [_playerViewController dismissViewControllerAnimated:YES completion:^{
+                _channelsTab.collectionView.frame=CGRectMake(10, 700, 1920, 300);
+                _channelsTab.modalPresentationStyle=UIModalPresentationOverFullScreen;
+                [_playerViewController presentViewController:_channelsTab animated:YES completion:nil];
+            }];
+
+        }else{
+            [_playerViewController dismissViewControllerAnimated:YES completion:nil];
+        }
+    } @catch(id anException){
+        NSLog(@"setShowChannels anException %@", anException);
+    }
+ }
+- (void)setPlayerUI
+{
+    if(_playerMetaData){
+        // Custom Icons
+        //    if (@available(tvOS 15.0, *)) {
+        //        UIImage *Image1 = [UIImage systemImageNamed:@"heart"];
+        //        UIImage *Image2 = [UIImage imageNamed:@"no-ads"];
+        //        UIAction *tap1Action =  [UIAction actionWithTitle:@"Favorites" image:Image1 identifier:nil handler:^(UIAction* action){
+        //            NSLog(@"Never gets here");
+        //        }];
+        //        UIAction *tap2Action =  [UIAction actionWithTitle:@"Favorites" image:Image2 identifier:nil handler:^(UIAction* action){
+        //            NSLog(@"Never gets here");
+        //        }];
+        //        self->_playerViewController.transportBarCustomMenuItems=@[tap1Action , tap2Action];
+        //    }
+        NSString *title = [_playerMetaData objectForKey:@"title"];
+        NSString *type = [_playerMetaData objectForKey:@"type"];
+        NSString *subtitle = [_playerMetaData objectForKey:@"subtitle"];
+        NSString *description = [_playerMetaData objectForKey:@"description"];
+        NSString *episodeTitle = [_playerMetaData objectForKey:@"episodeTitle"];
+        NSString *thumbUrl = [_playerMetaData objectForKey:@"thumb"];
+        NSString *genre = [_playerMetaData objectForKey:@"genres"];
+        NSString *contentId = [_playerMetaData objectForKey:@"id"];
+        NSArray *channels = [_playerMetaData objectForKey:@"channels"];
+        // the main title of the show : appear at the top of the progress bar
+        AVMutableMetadataItem *metaTitle = [[AVMutableMetadataItem alloc ] init];
+        metaTitle.identifier = AVMetadataCommonIdentifierTitle;
+        metaTitle.extendedLanguageTag = @"und";
+        metaTitle.value = title;
+
+        AVMutableMetadataItem *metaSubTitle = [[AVMutableMetadataItem alloc ] init];
+        metaSubTitle.identifier = AVMetadataIdentifieriTunesMetadataTrackSubTitle;
+        metaSubTitle.extendedLanguageTag = @"und";
+        metaSubTitle.value = subtitle;
+
+        // the title that appear on info bar
+        AVMutableMetadataItem *metaAlbumName = [[AVMutableMetadataItem alloc ] init];
+        metaAlbumName.identifier = AVMetadataCommonIdentifierAlbumName;
+        metaAlbumName.extendedLanguageTag = @"und";
+        metaAlbumName.value = episodeTitle;
+
+        // the description that appear on info bar
+        AVMutableMetadataItem *metaDesciption = [[AVMutableMetadataItem alloc ] init];
+        metaDesciption.identifier = AVMetadataCommonIdentifierDescription;
+        metaDesciption.extendedLanguageTag = @"und";
+        metaDesciption.value = description;
+
+        AVMutableMetadataItem *metaGenere = [[AVMutableMetadataItem alloc ] init];
+        metaGenere.identifier = AVMetadataIdentifierQuickTimeMetadataGenre;
+        metaGenere.extendedLanguageTag = @"und";
+        metaGenere.value = genre;
+
+
+        // the image that appear on info bar
+        AVMutableMetadataItem *metaArtWork = [[AVMutableMetadataItem alloc ] init];
+        metaArtWork.identifier = AVMetadataCommonIdentifierArtwork;
+        metaArtWork.extendedLanguageTag = @"und";
+
+        NSURL *url = [NSURL URLWithString:thumbUrl];
+        NSData *data = [NSData dataWithContentsOfURL:url];
+        UIImage *artworkImage = [[UIImage alloc ] initWithData: data];
+        metaArtWork.value = UIImagePNGRepresentation(artworkImage);
+
+        // content id
+        AVMutableMetadataItem *metaContentId = [[AVMutableMetadataItem alloc ] init];
+        metaContentId.extendedLanguageTag = @"und";
+        metaContentId.value = contentId;
+
+        // player progress
+        AVMutableMetadataItem *metaPlaybackProgress = [[AVMutableMetadataItem alloc ] init];
+        if (@available(tvOS 10.1, *)) {
+            [metaContentId setIdentifier:AVKitMetadataIdentifierExternalContentIdentifier];
+            [metaPlaybackProgress setIdentifier:AVKitMetadataIdentifierPlaybackProgress];
+        } else {
+            [metaContentId setIdentifier:@"NPI/_MPNowPlayingInfoPropertyExternalContentIdentifier" ];
+        }
+        metaPlaybackProgress.extendedLanguageTag = @"und";
+        metaPlaybackProgress.value = 0;
+        if([type isEqual:@"VOD"]){
+            [self->_playerItem  setExternalMetadata:@[metaTitle ,
+                                                      metaSubTitle,
+                                                      metaArtWork,
+                                                      metaGenere,
+                                                      metaAlbumName,
+                                                      metaDesciption,
+                                                      metaContentId ,
+                                                      metaPlaybackProgress]];
+        }else{
+            [self->_playerItem  setExternalMetadata:@[metaTitle ,
+                                                      metaContentId ,
+                                                      metaPlaybackProgress]];
+            if( channels && channels.count > 0 ){
+
+//                _channelsTab = [self prepareChannelsViewController];
+//                if (@available(tvOS 15.0, *)) {
+//                    _playerViewController.customInfoViewController=_channelsTab;
+//
+//                } else if (@available(tvOS 13.0, *)) {
+//                    _playerViewController.customOverlayViewController=_channelsTab;
+//                }
+            }
+
+        }
+
+        if (@available(iOS 13.0, tvOS 13.0, *)) {
+            [[NSNotificationCenter defaultCenter] addObserver:self
+                                                     selector:@selector(handleMediaSelectionChange:)
+                                                         name:AVPlayerItemMediaSelectionDidChangeNotification
+                                                       object:_playerItem];
+        }
+        // @Todo : check for interstitialTimeRanges
+//        _playerItem.interstitialTimeRanges = [self makeInterstitialTimeRanges];
+//        [self setPlayerItemForInterstitial:_playerItem];
+//        [self setPlayerForInterstitial:_player];
+    }
+}
 - (void)usePlayerViewController
 {
   if( _player )
@@ -1485,10 +1747,10 @@ static int const RCTVideoUnset = -1;
       UIViewController *viewController = [self reactViewController];
       [viewController addChildViewController:_playerViewController];
       [self addSubview:_playerViewController.view];
+            [self setPlayerUI];
     }
 
     [_playerViewController addObserver:self forKeyPath:readyForDisplayKeyPath options:NSKeyValueObservingOptionNew context:nil];
-
     [_playerViewController.contentOverlayView addObserver:self forKeyPath:@"frame" options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:NULL];
   }
 }
@@ -1690,10 +1952,10 @@ static int const RCTVideoUnset = -1;
   [_playerViewController.contentOverlayView removeObserver:self forKeyPath:@"frame"];
   [_playerViewController removeObserver:self forKeyPath:readyForDisplayKeyPath];
   [_playerViewController.view removeFromSuperview];
-  _playerViewController.rctDelegate = nil;
+    _playerViewController.delegate = nil;
   _playerViewController.player = nil;
   _playerViewController = nil;
-
+    [self resetInterstitialParam];
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];
 

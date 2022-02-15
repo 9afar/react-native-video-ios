@@ -3,7 +3,14 @@
 #import "UIView+FindUIViewController.h"
 
 @implementation UIView (FindUIViewController)
-- (UIViewController *) firstAvailableUIViewController {
+AVPlayerItem *_playerItem;
+AVPlayer *_player;
+NSMutableArray *interstitialWatched;
+AVInterstitialTimeRange *_selectedInterstitialCW;
+float _pendingSeekTime;
+BOOL _disableSeek;
+
+- (UIViewController *) firstAvailableUIViewController{
     // convenience function for casting and to "mask" the recursive function
     return (UIViewController *)[self traverseResponderChainForUIViewController];
 }
@@ -17,5 +24,89 @@
     } else {
         return nil;
     }
+}
+- (void) setPlayerItemForInterstitial:(AVPlayerItem *)playerItem {
+    _playerItem = playerItem;
+}
+- (void) resetInterstitialParam{
+    interstitialWatched= nil;
+    _playerItem= nil;
+    _player =nil;
+    _selectedInterstitialCW= nil;
+    _pendingSeekTime = 0;
+}
+- (void) setPendingSeek:(float)time{
+    _pendingSeekTime= time;
+}
+- (void) UIVewSetDisableSeek:(BOOL)disableSeek{
+    _disableSeek= disableSeek;
+}
+- (void) setPlayerForInterstitial:(AVPlayer *)player{
+    _player= player;
+}
+- (void) setSelectedInterstitialCW:(AVInterstitialTimeRange *)interstitial{
+    _selectedInterstitialCW= interstitial;
+}
+#pragma mark - AVPlayerViewControllerDelegate
+-(void)playerViewController:(AVPlayerViewController *)playerViewController willPresentInterstitialTimeRange:(AVInterstitialTimeRange *)interstitial{
+    if(!interstitialWatched){
+        interstitialWatched = [NSMutableArray array];
+    }
+    if([interstitialWatched containsObject: interstitial]){
+        if(_selectedInterstitialCW == interstitial && _pendingSeekTime > 0){
+            CMTime cmSeekTime = CMTimeMakeWithSeconds(_pendingSeekTime, 1000);
+            [_player seekToTime:cmSeekTime completionHandler:^(BOOL finished) {
+                _selectedInterstitialCW = nil;
+                _pendingSeekTime = 0;
+            }];
+        }
+    }else {
+        [interstitialWatched addObject:interstitial];
+        playerViewController.requiresLinearPlayback = true;
+    }
+
+    if (@available(tvOS 15.0, *)) {
+        [playerViewController setTransportBarIncludesTitleView: false ];
+    }
+}
+- (void)playerViewController:(AVPlayerViewController *)playerViewController didPresentInterstitialTimeRange:(AVInterstitialTimeRange *)interstitial{
+
+    playerViewController.requiresLinearPlayback = false;
+    if (@available(tvOS 15.0, *)) {
+        [playerViewController setTransportBarIncludesTitleView: true ];
+    }
+    if(_selectedInterstitialCW == interstitial && _pendingSeekTime > 0){
+        CMTime cmSeekTime = CMTimeMakeWithSeconds(_pendingSeekTime, 1000);
+        [_player seekToTime:cmSeekTime completionHandler:^(BOOL finished) {
+            _selectedInterstitialCW = nil;
+            _pendingSeekTime = 0;
+        }];
+    }
+}
+
+- (CMTime)playerViewController:(AVPlayerViewController *)playerViewController
+timeToSeekAfterUserNavigatedFromTime:(CMTime)oldTime
+                        toTime:(CMTime)targetTime{
+    if(_disableSeek){
+        // NO SEEKING , return to old time;
+        return oldTime;
+    }
+    // only to foward
+    if(CMTimeCompare(oldTime,targetTime)== 1)  {
+        return targetTime;
+    }
+    if(_playerItem.interstitialTimeRanges){
+        CMTimeRange seekRange = CMTimeRangeMake(oldTime, targetTime);
+        for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
+            if (CMTimeRangeContainsTime(seekRange , interstitialRange.timeRange.start)){
+                if (interstitialWatched && [interstitialWatched containsObject: interstitialRange]) {
+                    return targetTime;
+                }
+                return interstitialRange.timeRange.start;
+            }
+        }
+    }
+    return targetTime;
+
 }
 @end

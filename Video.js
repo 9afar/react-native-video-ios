@@ -278,6 +278,9 @@ export default class Video extends Component {
   toggleSkipVisbility = (toggleValue) => {
     NativeModules.VideoManager.toggleSkipVisbility(toggleValue);
   }
+ setYouboraError = (error) => {
+  NativeModules.VideoManager.setYouboraError(error);
+  }
   render() {
     const resizeMode = this.props.resizeMode;
     const source = resolveAssetSource(this.props.source) || {};

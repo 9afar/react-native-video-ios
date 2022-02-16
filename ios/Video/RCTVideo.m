@@ -25,6 +25,11 @@
      [super fireStop:params];
     self.supportPlaylists = NO;
 }
+//Stop Error Listner from YBadapter
+- (void) fireErrorWithMessage:(nullable NSString *) msg code:(nullable NSString *) code andMetadata:(nullable NSString *) errorMetadata {
+}
+- (void) sendError:(NSError *) error {
+}
 @end
 
 @interface RCTVideo()
@@ -38,6 +43,8 @@ static NSString *const readyForDisplayKeyPath = @"readyForDisplay";
 static NSString *const playbackRate = @"rate";
 static NSString *const timedMetadata = @"timedMetadata";
 static NSString *const externalPlaybackActive = @"externalPlaybackActive";
+static YBPlugin *youboraPlugin = nil;
+static CustomAdapter * _adapter = nil;
 
 static int const RCTVideoUnset = -1;
 
@@ -107,10 +114,8 @@ static int const RCTVideoUnset = -1;
   BOOL _filterEnabled;
   UIViewController * _presentingViewController;
   NSDictionary *_shahidYouboraOptions;
-    NSDictionary *_playerMetaData;
-    NSArray *_adSegments;
-  YBPlugin * _youboraPlugin;
-  CustomAdapter * _adapter;
+  NSDictionary *_playerMetaData;
+  NSArray *_adSegments;
   float _paddingBottomTrack;
 
 #if __has_include(<react-native-video/RCTVideoCache.h>)
@@ -182,8 +187,24 @@ static int const RCTVideoUnset = -1;
 //         self->_playerItem = nil;
 //        [self->_player replaceCurrentItemWithPlayerItem:nil];
 //        self->_player = nil;
-         [self->_adapter fireStop];
+         [_adapter fireStop];
+         _adapter = nil;
      });
+}
+- (void)setYouboraError:(NSDictionary *)error
+{
+         if(youboraPlugin != nil){
+             NSString *msg =[error objectForKey:@"message"];
+             NSString *code =[error objectForKey:@"code"];
+             NSString *playHead = [[youboraPlugin getPlayhead] stringValue];
+             NSString *src = [self->_source objectForKey:@"uri"];
+             [youboraPlugin fireErrorWithParams:@{
+                @"playhead":playHead,
+                @"msg":msg,
+                @"errorCode":code,
+                @"mediaResource":src
+             }];
+          }
 }
 - (void)skipIntro:(UIButton*)sender
 {
@@ -507,7 +528,14 @@ static int const RCTVideoUnset = -1;
 
 
     // check if this is the first chunk
-   if(self->_shahidYouboraOptions != nil) {
+   if (self->_shahidYouboraOptions == nil){
+      if (youboraPlugin != nil) {
+          [youboraPlugin removeAdapter];
+          youboraPlugin = nil;
+          _adapter= nil;
+        }
+      return;
+   } else  {
     dispatch_async(dispatch_get_main_queue(), ^{
       YBOptions *ybOptions = [YBOptions new];
 
@@ -534,11 +562,15 @@ static int const RCTVideoUnset = -1;
         ybOptions.customDimension8 = [self->_shahidYouboraOptions objectForKey:@"extraparam.8"];
 
         [YBLog setDebugLevel:YBLogLevelVerbose];
-        self->_youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
-        self->_adapter = [[CustomAdapter alloc] initWithPlayer:self->_player];
-        [self->_youboraPlugin setAdapter:self->_adapter];
-
-       self->_adapter.customArguments = @{
+         if (youboraPlugin == nil) {
+           youboraPlugin = [[YBPlugin alloc] initWithOptions:ybOptions];
+         }else{
+           [youboraPlugin setOptions:ybOptions];
+         }
+      if(!_adapter){
+       _adapter = [[CustomAdapter alloc] initWithPlayer:self->_player];
+       [youboraPlugin setAdapter:_adapter];
+        _adapter.customArguments = @{
         @"contentPlaybackType": [self->_shahidYouboraOptions objectForKey:@"contentPlaybackType"],
         @"contentSeason": [self->_shahidYouboraOptions objectForKey:@"season"],
         @"tvshow": [self->_shahidYouboraOptions objectForKey:@"tvShow"] ,
@@ -550,6 +582,8 @@ static int const RCTVideoUnset = -1;
         @"rendition": [self->_shahidYouboraOptions objectForKey:@"rendition"],
         @"contentChannel": [ self->_shahidYouboraOptions objectForKey:@"contentChannels" ],
        };
+       [_adapter fireStart];
+      }
     });
    }
     }];

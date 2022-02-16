@@ -84,6 +84,10 @@ RCT_REMAP_METHOD(toggleSkipVisbility,
                  toggleValue:(BOOL)toggleValue ){
     [_video toggleSkipVisbility:toggleValue];
 }
+RCT_REMAP_METHOD(setYouboraError,
+                error:(NSDictionary *)error){
+    [_video setYouboraError:error];
+}
 RCT_REMAP_METHOD(save,
         options:(NSDictionary *)options
         reactTag:(nonnull NSNumber *)reactTag

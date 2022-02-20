@@ -45,6 +45,9 @@
 @property (nonatomic, copy) RCTDirectEventBlock onSkipIntro;
 @property (nonatomic, copy) RCTDirectEventBlock onMediaSelectionChange;
 @property (nonatomic, copy) RCTDirectEventBlock onAdEvent;
+@property (nonatomic, copy) RCTDirectEventBlock onPressHdToggle;
+@property (nonatomic, copy) RCTDirectEventBlock onPressNoAds;
+
 typedef NS_ENUM(NSInteger, RCTVideoError) {
     RCTVideoErrorFromJSPart,
     RCTVideoErrorLicenseRequestNotOk,
@@ -65,6 +68,7 @@ typedef NS_ENUM(NSInteger, RCTVideoError) {
 - (void)setLicenseResult:(NSString * )license;
 - (BOOL)setLicenseResultError:(NSString * )error;
 - (void)toggleSkipVisbility:(BOOL)value;
+- (void)playerControlInteraction:(BOOL)value;
 - (void)setYouboraError:(NSDictionary * )error;
 - (void)stop;
 

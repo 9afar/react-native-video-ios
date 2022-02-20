@@ -77,12 +77,19 @@ RCT_EXPORT_VIEW_PROPERTY(onGetLicense, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onSkipIntro, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onMediaSelectionChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onAdEvent, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onPressHdToggle, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onPressNoAds, RCTDirectEventBlock);
+
 RCT_EXPORT_METHOD(stop){
     [_video stop];
 }
 RCT_REMAP_METHOD(toggleSkipVisbility,
                  toggleValue:(BOOL)toggleValue ){
     [_video toggleSkipVisbility:toggleValue];
+}
+RCT_REMAP_METHOD(playerControlInteraction,
+                 value:(BOOL)value){
+    [_video playerControlInteraction: value];
 }
 RCT_REMAP_METHOD(setYouboraError,
                 error:(NSDictionary *)error){

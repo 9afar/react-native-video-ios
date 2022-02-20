@@ -212,6 +212,11 @@ static int const RCTVideoUnset = -1;
         self.onSkipIntro(@{@"target": self.reactTag});
     }
 }
+- (void)playerControlInteraction:(BOOL)toggle{
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        self->_playerViewController.view.userInteractionEnabled= toggle;
+    });
+}
 - (void)toggleSkipVisbility:(BOOL)toggle{
 
     dispatch_sync(dispatch_get_main_queue(), ^{
@@ -1604,17 +1609,36 @@ static int const RCTVideoUnset = -1;
 {
     if(_playerMetaData){
         // Custom Icons
-        //    if (@available(tvOS 15.0, *)) {
-        //        UIImage *Image1 = [UIImage systemImageNamed:@"heart"];
-        //        UIImage *Image2 = [UIImage imageNamed:@"no-ads"];
-        //        UIAction *tap1Action =  [UIAction actionWithTitle:@"Favorites" image:Image1 identifier:nil handler:^(UIAction* action){
-        //            NSLog(@"Never gets here");
-        //        }];
-        //        UIAction *tap2Action =  [UIAction actionWithTitle:@"Favorites" image:Image2 identifier:nil handler:^(UIAction* action){
-        //            NSLog(@"Never gets here");
-        //        }];
-        //        self->_playerViewController.transportBarCustomMenuItems=@[tap1Action , tap2Action];
-        //    }
+        if (@available(tvOS 15.0, *)) {
+            bool showHDToggle = [[_playerMetaData objectForKey:@"showHDToggle"] boolValue];
+            bool showNoAds = [[_playerMetaData objectForKey:@"showNoAds"] boolValue];
+            NSMutableArray *customMenuItems = [[NSMutableArray alloc] init];
+            if(showHDToggle){
+                UIImage *hdImage = [UIImage imageNamed:@"hd"];
+                UIAction *hdAction =  [UIAction actionWithTitle:@"hd" image:hdImage identifier:nil handler:^(UIAction* action){
+                    if(self.onPressHdToggle){
+                        self.onPressHdToggle(@{
+                            @"target": self.reactTag
+                        });
+                    }
+                }];
+                [customMenuItems addObject:hdAction];
+            }
+            if(showNoAds){
+                UIImage *noAdsImage = [UIImage imageNamed:@"no-ads"];
+                UIAction *noAdsAction =  [UIAction actionWithTitle:@"no-ads" image:noAdsImage identifier:nil handler:^(UIAction* action){
+                    if(self.onPressNoAds){
+                        self.onPressNoAds(@{
+                            @"target": self.reactTag
+                        });
+                    }
+                }];
+                [customMenuItems addObject:noAdsAction];
+            }
+
+
+            self->_playerViewController.transportBarCustomMenuItems=customMenuItems;
+        }
         NSString *title = [_playerMetaData objectForKey:@"title"];
         NSString *type = [_playerMetaData objectForKey:@"type"];
         NSString *subtitle = [_playerMetaData objectForKey:@"subtitle"];

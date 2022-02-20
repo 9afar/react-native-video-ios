@@ -265,6 +265,16 @@ export default class Video extends Component {
       this.props.onAdEvent(event.nativeEvent);
     }
   }
+  _onPressHdToggle= (event) =>{
+    if (this.props.onPressHdToggle) {
+      this.props.onPressHdToggle(event.nativeEvent);
+    }
+  }
+  _onPressNoAds= (event) =>{
+    if (this.props.onPressNoAds) {
+      this.props.onPressNoAds(event.nativeEvent);
+    }
+  }
 
   getViewManagerConfig = viewManagerName => {
     if (!NativeModules.UIManager.getViewManagerConfig) {
@@ -277,6 +287,9 @@ export default class Video extends Component {
   }
   toggleSkipVisbility = (toggleValue) => {
     NativeModules.VideoManager.toggleSkipVisbility(toggleValue);
+  }
+  playerControlInteraction = (toggleValue) => {
+    NativeModules.VideoManager.playerControlInteraction(toggleValue);
   }
  setYouboraError = (error) => {
   NativeModules.VideoManager.setYouboraError(error);
@@ -351,7 +364,9 @@ export default class Video extends Component {
       onRestoreUserInterfaceForPictureInPictureStop: this._onRestoreUserInterfaceForPictureInPictureStop,
       onSkipIntro : this._onSkipIntro,
       onMediaSelectionChange : this._onMediaSelectionChange,
-      onAdEvent: this._onAdEvent
+      onAdEvent: this._onAdEvent,
+      onPressHdToggle: this._onPressHdToggle,
+      onPressNoAds: this._onPressNoAds
     });
 
     const posterStyle = {

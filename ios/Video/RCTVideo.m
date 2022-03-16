@@ -1680,8 +1680,10 @@ static int const RCTVideoUnset = -1;
         AVMutableMetadataItem *metaArtWork = [[AVMutableMetadataItem alloc ] init];
         metaArtWork.identifier = AVMetadataCommonIdentifierArtwork;
         metaArtWork.extendedLanguageTag = @"und";
-
-        NSURL *url = [NSURL URLWithString:thumbUrl];
+        NSCharacterSet *set = [NSCharacterSet URLFragmentAllowedCharacterSet];
+        NSString *encodedUrl = [thumbUrl stringByAddingPercentEncodingWithAllowedCharacters:set];
+        
+        NSURL *url = [NSURL URLWithString:encodedUrl];
         NSData *data = [NSData dataWithContentsOfURL:url];
         UIImage *artworkImage = [[UIImage alloc ] initWithData: data];
         metaArtWork.value = UIImagePNGRepresentation(artworkImage);

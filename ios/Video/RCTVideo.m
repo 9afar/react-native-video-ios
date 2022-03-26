@@ -1647,6 +1647,7 @@ static int const RCTVideoUnset = -1;
         NSString *thumbUrl = [_playerMetaData objectForKey:@"thumb"];
         NSString *genre = [_playerMetaData objectForKey:@"genres"];
         NSString *contentId = [_playerMetaData objectForKey:@"id"];
+        bool explicitContent = [[_playerMetaData objectForKey:@"explicitContent"] boolValue];
         // the main title of the show : appear at the top of the progress bar
         AVMutableMetadataItem *metaTitle = [[AVMutableMetadataItem alloc ] init];
         metaTitle.identifier = AVMetadataCommonIdentifierTitle;
@@ -1657,6 +1658,11 @@ static int const RCTVideoUnset = -1;
         metaSubTitle.identifier = AVMetadataIdentifieriTunesMetadataTrackSubTitle;
         metaSubTitle.extendedLanguageTag = @"und";
         metaSubTitle.value = subtitle;
+
+        AVMutableMetadataItem *metaRating = [[AVMutableMetadataItem alloc ] init];
+        metaRating.identifier = AVMetadataIdentifieriTunesMetadataContentRating;
+        metaRating.extendedLanguageTag = @"und";
+        metaRating.value =@"+18";
 
         // the title that appear on info bar
         AVMutableMetadataItem *metaAlbumName = [[AVMutableMetadataItem alloc ] init];
@@ -1682,7 +1688,7 @@ static int const RCTVideoUnset = -1;
         metaArtWork.extendedLanguageTag = @"und";
         NSCharacterSet *set = [NSCharacterSet URLFragmentAllowedCharacterSet];
         NSString *encodedUrl = [thumbUrl stringByAddingPercentEncodingWithAllowedCharacters:set];
-        
+
         NSURL *url = [NSURL URLWithString:encodedUrl];
         NSData *data = [NSData dataWithContentsOfURL:url];
         UIImage *artworkImage = [[UIImage alloc ] initWithData: data];
@@ -1704,14 +1710,18 @@ static int const RCTVideoUnset = -1;
         metaPlaybackProgress.extendedLanguageTag = @"und";
         metaPlaybackProgress.value = 0;
         if([type isEqual:@"VOD"]){
-            [self->_playerItem  setExternalMetadata:@[metaTitle ,
-                                                      metaSubTitle,
-                                                      metaArtWork,
-                                                      metaGenere,
-                                                      metaAlbumName,
-                                                      metaDesciption,
-                                                      metaContentId ,
-                                                      metaPlaybackProgress]];
+            NSMutableArray *metadataItems = [[NSMutableArray alloc] initWithArray:@[metaTitle ,
+                                                                                    metaSubTitle,
+                                                                                    metaArtWork,
+                                                                                    metaGenere,
+                                                                                    metaAlbumName,
+                                                                                    metaDesciption,
+                                                                                    metaContentId ,
+                                                                                    metaPlaybackProgress]];
+            if(explicitContent){
+                [metadataItems addObject:metaRating];
+            }
+            [self->_playerItem  setExternalMetadata:metadataItems];
         }
 
         if (@available(iOS 13.0, tvOS 13.0, *)) {

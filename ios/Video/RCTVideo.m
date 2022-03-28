@@ -481,6 +481,8 @@ static int const RCTVideoUnset = -1;
 
         ybOptions.accountCode = [self->_shahidYouboraOptions objectForKey:@"accountCode"];;
         ybOptions.username = [self->_shahidYouboraOptions objectForKey:@"username"];
+        ybOptions.appName = [self->_shahidYouboraOptions objectForKey:@"appName"];
+        ybOptions.appReleaseVersion = [self->_shahidYouboraOptions objectForKey:@"releaseVersion"];
         ybOptions.contentTitle = [self->_shahidYouboraOptions objectForKey:@"title"];
         ybOptions.program = [self->_shahidYouboraOptions objectForKey:@"program"];
         ybOptions.contentTransactionCode = [self->_shahidYouboraOptions objectForKey:@"contentTransactionCode"];

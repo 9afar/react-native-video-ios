@@ -192,7 +192,7 @@ static int const RCTVideoUnset = -1;
 }
 - (void)setYouboraError:(NSDictionary *)error
 {
-         if(youboraPlugin != nil){
+         if(youboraPlugin != nil && self->_source){
              NSString *msg =[error objectForKey:@"message"];
              NSString *code =[error objectForKey:@"code"];
              NSString *playHead = [[youboraPlugin getPlayhead] stringValue];

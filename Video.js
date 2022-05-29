@@ -250,6 +250,32 @@ export default class Video extends Component {
       }
     }
   }
+  _onSkipIntro = (event) => {
+    if (this.props.onSkipIntro) {
+      this.props.onSkipIntro();
+    }
+  }
+  _onMediaSelectionChange = (event) => {
+    if (this.props.onMediaSelectionChange) {
+      this.props.onMediaSelectionChange(event.nativeEvent);
+    }
+  }
+  _onAdEvent = (event) => {
+    if (this.props.onAdEvent) {
+      this.props.onAdEvent(event.nativeEvent);
+    }
+  }
+  _onPressHdToggle= (event) =>{
+    if (this.props.onPressHdToggle) {
+      this.props.onPressHdToggle(event.nativeEvent);
+    }
+  }
+  _onPressNoAds= (event) =>{
+    if (this.props.onPressNoAds) {
+      this.props.onPressNoAds(event.nativeEvent);
+    }
+  }
+
   getViewManagerConfig = viewManagerName => {
     if (!NativeModules.UIManager.getViewManagerConfig) {
       return NativeModules.UIManager[viewManagerName];
@@ -259,8 +285,14 @@ export default class Video extends Component {
   stop = () => {
     NativeModules.VideoManager.stop();
   }
-  setYouboraError = (error) => {
-    NativeModules.VideoManager.setYouboraError(error);
+  toggleSkipVisbility = (toggleValue) => {
+    NativeModules.VideoManager.toggleSkipVisbility(toggleValue);
+  }
+  playerControlInteraction = (toggleValue) => {
+    NativeModules.VideoManager.playerControlInteraction(toggleValue);
+  }
+ setYouboraError = (error) => {
+  NativeModules.VideoManager.setYouboraError(error);
   }
   render() {
     const resizeMode = this.props.resizeMode;
@@ -330,6 +362,11 @@ export default class Video extends Component {
       onGetLicense: nativeProps.drm && nativeProps.drm.getLicense && this._onGetLicense,
       onPictureInPictureStatusChanged: this._onPictureInPictureStatusChanged,
       onRestoreUserInterfaceForPictureInPictureStop: this._onRestoreUserInterfaceForPictureInPictureStop,
+      onSkipIntro : this._onSkipIntro,
+      onMediaSelectionChange : this._onMediaSelectionChange,
+      onAdEvent: this._onAdEvent,
+      onPressHdToggle: this._onPressHdToggle,
+      onPressNoAds: this._onPressNoAds
     });
 
     const posterStyle = {

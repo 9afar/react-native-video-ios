@@ -118,6 +118,13 @@ static int const RCTVideoUnset = -1;
   NSArray *_adSegments;
   float _paddingBottomTrack;
 
+  NSMutableArray *interstitialWatched;
+  NSMutableArray *interstitialCompleted;
+  AVInterstitialTimeRange *_selectedInterstitialCW;
+  AVInterstitialTimeRange *_currentInterstitial;
+  float _pendingInterstitialSeekTime;
+  NSArray *infoViewActions;
+
 #if __has_include(<react-native-video/RCTVideoCache.h>)
   RCTVideoCache * _videoCache;
 #endif
@@ -385,15 +392,8 @@ static int const RCTVideoUnset = -1;
   CMTime currentTime = _player.currentTime;
   const Float64 duration = CMTimeGetSeconds(playerDuration);
   const Float64 currentTimeSecs = CMTimeGetSeconds(currentTime);
+  bool adsBreak =[self isAdsRunning:currentTime];
 
-    bool adsBreak = false;
-    if(_playerItem.interstitialTimeRanges){
-         for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
-            if (CMTimeRangeContainsTime(interstitialRange.timeRange,currentTime)){
-                adsBreak= true;
-            }
-        }
-    }
   if(!adsBreak){
         [[NSNotificationCenter defaultCenter] postNotificationName:@"RCTVideo_progress" object:nil userInfo:@{@"progress": [NSNumber numberWithDouble: currentTimeSecs / duration]}];
 
@@ -623,6 +623,10 @@ static int const RCTVideoUnset = -1;
     _playerMetaData = playerMetaData;
 }
 - (void)setAdSegments:(NSArray *)segments{
+    if(segments && segments.count > 0){
+        _playerItem.interstitialTimeRanges = [self makeInterstitialTimeRanges:segments];
+        [self setPlayerItemForInterstitial:_playerItem];
+    }
     _adSegments = segments;
 }
 - (NSURL*) urlFilePath:(NSString*) filepath {
@@ -1171,14 +1175,15 @@ static int const RCTVideoUnset = -1;
         if(_playerItem.interstitialTimeRanges){
             AVInterstitialTimeRange *interstitialMatched;
             for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
-                if ([seekTime longLongValue] >= interstitialRange.timeRange.start.value){
+                if ([seekTime longLongValue] >= interstitialRange.timeRange.start.value
+                    && ![interstitialCompleted containsObject: interstitialRange]){
                     interstitialMatched = interstitialRange;
                 }
             }
-            // Handle interstitial with CW seek
+            // Handle interstitial with seek ( CW , SKIP INTRO)
             if(interstitialMatched){
-                [self setPendingSeek:[seekTime floatValue]];
-                [self setSelectedInterstitialCW:interstitialMatched];
+                _pendingInterstitialSeekTime= [seekTime floatValue];
+                _selectedInterstitialCW = interstitialMatched;
                 cmSeekTime = CMTimeMakeWithSeconds(interstitialMatched.timeRange.start.value,
                                                    timeScale);
             }
@@ -1607,6 +1612,123 @@ static int const RCTVideoUnset = -1;
     }
     return adBreaksCMTime;
 }
+//==============================ADS FUNCTIONS==================================
+
+- (bool) isAdsRunning: (CMTime) currentTime {
+    bool adsBreak = false;
+    [self setAdsRunning:false];
+    if(_playerItem.interstitialTimeRanges){
+         for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
+             // to set the _currentInterstitial
+             if (CMTimeRangeContainsTime(interstitialRange.timeRange,currentTime) &&
+                 ![interstitialCompleted containsObject: interstitialRange]){
+                 if(!_currentInterstitial){
+                     _currentInterstitial = interstitialRange;
+                     [self willPresentInterstitialTimeRange: interstitialRange];
+                  }
+                 [self setAdsRunning:true];
+                 adsBreak= true;
+             }
+
+             // to skip the watched ads
+             if (CMTimeRangeContainsTime(interstitialRange.timeRange,
+                                         CMTimeMakeWithSeconds((CMTimeGetSeconds(currentTime) + 2),1))){
+
+                 if (interstitialCompleted && [interstitialCompleted containsObject: interstitialRange]){
+                     CMTime playerDuration = [self playerItemDuration];
+                     long end = interstitialRange.timeRange.start.value + interstitialRange.timeRange.duration.value + 1;
+                     if(end >= playerDuration.value &&  self.onVideoEnd) {
+                       self.onVideoEnd(@{@"target": self.reactTag});
+                     }
+                     [_player seekToTime:CMTimeMakeWithSeconds(end, 1) toleranceBefore: kCMTimeZero toleranceAfter: kCMTimeZero];
+                     [self setAdsRunning:false];
+                     adsBreak= false;
+                  }
+             }
+
+         }
+
+    }
+    // if ads finished and still there is _currentInterstitial call didPresentInterstitialTimeRange
+    if(_currentInterstitial && !adsBreak){
+        [self didPresentInterstitialTimeRange: _currentInterstitial];
+        _currentInterstitial = nil;
+    }
+    return adsBreak;
+}
+- (void) resetInterstitialParam{
+    interstitialWatched= nil;
+    interstitialCompleted = nil;
+    _selectedInterstitialCW= nil;
+    _pendingInterstitialSeekTime = 0;
+    [self setInterstitialWatched:nil];
+    [self setInterstitialCompleted:nil];
+}
+//========== function that indicate Interstitial is about to start ========
+-(void) willPresentInterstitialTimeRange:(AVInterstitialTimeRange *)interstitial {
+    if(!interstitialWatched){
+        interstitialWatched = [NSMutableArray array];
+    }
+    if([interstitialWatched containsObject: interstitial]){
+        if(_selectedInterstitialCW == interstitial && _pendingInterstitialSeekTime > 0){
+             CMTime cmSeekTime = CMTimeMakeWithSeconds(_pendingInterstitialSeekTime, 1000);
+            [_player seekToTime:cmSeekTime completionHandler:^(BOOL finished) {
+                self->_selectedInterstitialCW = nil;
+                self->_pendingInterstitialSeekTime = 0;
+            }];
+        }
+    } else {
+        [interstitialWatched addObject:interstitial];
+        [self setInterstitialWatched:interstitialWatched];
+        _playerViewController.requiresLinearPlayback = true;
+        if (@available(tvOS 15.0, *)) {
+            infoViewActions =_playerViewController.infoViewActions;
+            _playerViewController.infoViewActions = @[];
+            [_playerViewController setTransportBarIncludesTitleView: false ];
+        }
+    }
+    if(![interstitialCompleted containsObject: interstitial]){
+        CMTime currentTime = _player.currentTime;
+        self.onAdEvent(@{
+            @"data": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
+            @"type": @"AdBreakStarted",
+            @"target" : self.reactTag
+        });
+    }
+}
+//========== function that indicate Interstitial ended ========
+-(void) didPresentInterstitialTimeRange:(AVInterstitialTimeRange *)interstitial {
+
+    _playerViewController.requiresLinearPlayback = false;
+
+    if (@available(tvOS 15.0, *)) {
+        _playerViewController.infoViewActions = infoViewActions;
+        [_playerViewController setTransportBarIncludesTitleView: true ];
+    }
+
+    if(!interstitialCompleted){
+        interstitialCompleted = [NSMutableArray array];
+    }
+    if(![interstitialCompleted containsObject: interstitial]){
+        CMTime currentTime = _player.currentTime;
+        self.onAdEvent(@{
+            @"data": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
+            @"type": @"AdBreakEnded",
+            @"target" : self.reactTag
+        });
+        [interstitialCompleted addObject:interstitial];
+        [self setInterstitialCompleted:interstitialCompleted];
+    }
+
+    if(_selectedInterstitialCW == interstitial && _pendingInterstitialSeekTime > 0){
+        CMTime cmSeekTime = CMTimeMakeWithSeconds(_pendingInterstitialSeekTime, 1000);
+        [_player seekToTime:cmSeekTime completionHandler:^(BOOL finished) {
+            self->_selectedInterstitialCW = nil;
+            self->_pendingInterstitialSeekTime = 0;
+        }];
+    }
+}
+
 - (void)setPlayerUI
 {
     if(_playerMetaData){
@@ -1731,11 +1853,6 @@ static int const RCTVideoUnset = -1;
                                                      selector:@selector(handleMediaSelectionChange:)
                                                      name:AVPlayerItemMediaSelectionDidChangeNotification
                                                      object:_playerItem];
-        }
-        if(_adSegments && _adSegments.count > 0){
-            _playerItem.interstitialTimeRanges = [self makeInterstitialTimeRanges:_adSegments];
-            [self setPlayerItemForInterstitial:_playerItem];
-            [self setPlayerForInterstitial:_player];
         }
 
     }
@@ -1963,7 +2080,7 @@ static int const RCTVideoUnset = -1;
     _playerViewController.delegate = nil;
   _playerViewController.player = nil;
   _playerViewController = nil;
-    [self resetInterstitialParam];
+  [self resetInterstitialParam];
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];
 

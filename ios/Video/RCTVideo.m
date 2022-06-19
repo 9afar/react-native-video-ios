@@ -179,10 +179,10 @@ static int const RCTVideoUnset = -1;
                                                  name:UIApplicationWillEnterForegroundNotification
                                                object:nil];
 
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(audioRouteChanged:)
-                                                 name:AVAudioSessionRouteChangeNotification
-                                               object:nil];
+//    [[NSNotificationCenter defaultCenter] addObserver:self
+//                                             selector:@selector(audioRouteChanged:)
+//                                                 name:AVAudioSessionRouteChangeNotification
+//                                               object:nil];
   }
 
   return self;
@@ -1731,6 +1731,8 @@ static int const RCTVideoUnset = -1;
 
 - (void)setPlayerUI
 {
+  @try{
+
     if(_playerMetaData){
         // Custom Icons
         if (@available(tvOS 15.0, *)) {
@@ -1856,6 +1858,9 @@ static int const RCTVideoUnset = -1;
         }
 
     }
+  } @catch(id anException) {
+     NSLog(@"****************** setPlayerUI  Error ******************");
+  }
 }
 - (void)usePlayerViewController
 {

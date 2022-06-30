@@ -116,6 +116,7 @@ static int const RCTVideoUnset = -1;
   NSDictionary *_shahidYouboraOptions;
   NSDictionary *_playerMetaData;
   NSArray *_adSegments;
+  NSDictionary *_palSDKMetadata;
   float _paddingBottomTrack;
 
 #if __has_include(<react-native-video/RCTVideoCache.h>)
@@ -264,6 +265,10 @@ static int const RCTVideoUnset = -1;
     if(self->_shahidYouboraOptions){
         NSString *contentId = [self->_shahidYouboraOptions objectForKey:@"contentId"];
         viewController.contentId = contentId;
+    }
+    if(_palSDKMetadata){
+        // FOR PAL SDK
+        viewController.palSDKMetadata =_palSDKMetadata;
     }
   viewController.view.frame = self.bounds;
   viewController.player = player;
@@ -522,6 +527,7 @@ static int const RCTVideoUnset = -1;
       if (self.onVideoLoadStart) {
         id uri = [self->_source objectForKey:@"uri"];
         id type = [self->_source objectForKey:@"type"];
+        [_playerViewController sendPlaybackStart];
         self.onVideoLoadStart(@{@"src": @{
                                     @"uri": uri ? uri : [NSNull null],
                                     @"type": type ? type : [NSNull null],
@@ -624,6 +630,9 @@ static int const RCTVideoUnset = -1;
 }
 - (void)setAdSegments:(NSArray *)segments{
     _adSegments = segments;
+}
+- (void)setPalSDKMetadata:(NSDictionary *)palSDKMetadata{
+    _palSDKMetadata = palSDKMetadata;
 }
 - (NSURL*) urlFilePath:(NSString*) filepath {
   if ([filepath containsString:@"file://"]) {
@@ -1027,6 +1036,7 @@ static int const RCTVideoUnset = -1;
 - (void)playerItemDidReachEnd:(NSNotification *)notification
 {
   if(self.onVideoEnd) {
+    [_playerViewController sendPlaybackEnd];
     self.onVideoEnd(@{@"target": self.reactTag});
   }
 

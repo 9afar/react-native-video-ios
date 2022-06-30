@@ -26,6 +26,7 @@ RCT_EXPORT_VIEW_PROPERTY(drm, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(shahidYouboraOptions, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(playerMetaData, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(adSegments, NSArray);
+RCT_EXPORT_VIEW_PROPERTY(palSDKMetadata, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(paddingBottomTrack, float);
 RCT_EXPORT_VIEW_PROPERTY(maxBitRate, float);
 RCT_EXPORT_VIEW_PROPERTY(resizeMode, NSString);

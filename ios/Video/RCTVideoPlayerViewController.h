@@ -16,6 +16,9 @@
 // Optional paramters
 @property (nonatomic, weak) NSString* preferredOrientation;
 @property (nonatomic, weak) NSString* contentId;
+@property (nonatomic, weak) NSDictionary* palSDKMetadata;
 @property (nonatomic) BOOL autorotate;
 
+- (void) sendPlaybackStart;
+- (void) sendPlaybackEnd;
 @end

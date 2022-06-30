@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
 
   s.ios.deployment_target = "8.0"
   s.tvos.deployment_target = "9.0"
-
+  s.vendored_frameworks = "ios/ProgrammaticAccessLibrary.framework"
   s.subspec "Video" do |ss|
     ss.dependency "YouboraAVPlayerAdapter", "6.3.3"
     ss.dependency "YouboraLib", "6.3.9"

@@ -1626,10 +1626,12 @@ static int const RCTVideoUnset = -1;
 
 - (bool) isAdsRunning: (CMTime) currentTime {
     bool adsBreak = false;
+    bool adFinished = false;
     [self setAdsRunning:false];
     if(_playerItem.interstitialTimeRanges){
          for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
              // to set the _currentInterstitial
+
              if (CMTimeRangeContainsTime(interstitialRange.timeRange,currentTime) &&
                  ![interstitialCompleted containsObject: interstitialRange]){
                  if(!_currentInterstitial){
@@ -1657,12 +1659,21 @@ static int const RCTVideoUnset = -1;
              }
 
          }
+        if(_currentInterstitial){
+            long endTime = _currentInterstitial.timeRange.start.value + _currentInterstitial.timeRange.duration.value;
+ 
+            if(![interstitialCompleted containsObject: _currentInterstitial]
+               && CMTimeCompare(currentTime , CMTimeMakeWithSeconds(endTime, 1000)) == 1){
+                adFinished = true;
+            }
+        }
 
     }
     // if ads finished and still there is _currentInterstitial call didPresentInterstitialTimeRange
-    if(_currentInterstitial && !adsBreak){
+    if(_currentInterstitial && adFinished){
         [self didPresentInterstitialTimeRange: _currentInterstitial];
         _currentInterstitial = nil;
+        adFinished = false;
     }
     return adsBreak;
 }

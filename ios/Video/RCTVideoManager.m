@@ -23,6 +23,7 @@ RCTVideo * _video;
 
 RCT_EXPORT_VIEW_PROPERTY(src, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(drm, NSDictionary);
+RCT_EXPORT_VIEW_PROPERTY(canUseNetworkResourcesForLiveStreamingWhilePaused, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(shahidYouboraOptions, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(playerMetaData, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(adSegments, NSArray);
@@ -76,6 +77,7 @@ RCT_EXPORT_VIEW_PROPERTY(onPlaybackRateChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onVideoExternalPlaybackChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onGetLicense, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onSkipIntro, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onNonceValueGenerated, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onMediaSelectionChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onAdEvent, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onPressHdToggle, RCTDirectEventBlock);

@@ -15,7 +15,7 @@
 #if __has_include(<react-native-video/RCTVideoCache.h>)
 @interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate, DVAssetLoaderDelegatesDelegate, AVAssetResourceLoaderDelegate,AVPlayerViewControllerDelegate>
 #elif TARGET_OS_TV
-@interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate, AVAssetResourceLoaderDelegate,AVPlayerViewControllerDelegate>
+@interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate,AVPlayerItemMetadataCollectorPushDelegate, AVAssetResourceLoaderDelegate,AVPlayerViewControllerDelegate>
 #else
 @interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate, AVPictureInPictureControllerDelegate, AVAssetResourceLoaderDelegate,AVPlayerViewControllerDelegate>
 #endif
@@ -43,6 +43,7 @@
 @property (nonatomic, copy) RCTDirectEventBlock onRestoreUserInterfaceForPictureInPictureStop;
 @property (nonatomic, copy) RCTDirectEventBlock onGetLicense;
 @property (nonatomic, copy) RCTDirectEventBlock onSkipIntro;
+@property (nonatomic, copy) RCTDirectEventBlock onNonceValueGenerated;
 @property (nonatomic, copy) RCTDirectEventBlock onMediaSelectionChange;
 @property (nonatomic, copy) RCTDirectEventBlock onAdEvent;
 @property (nonatomic, copy) RCTDirectEventBlock onPressHdToggle;

@@ -9,10 +9,11 @@
 @end
 
 @implementation RCTVideoPlayerViewController
+static NSString *const RCTSetNonceValueNotification = @"RCTSetNonceValueNotification";
 
 - (void)viewDidLoad {
   [super viewDidLoad];
-    
+
   if(self.palSDKMetadata){
       self.nonceLoader = [[PALNonceLoader alloc] init];
       self.nonceLoader.delegate = self;
@@ -23,7 +24,7 @@
 
   if (self.autorotate || self.preferredOrientation.lowercaseString == nil || [self.preferredOrientation.lowercaseString isEqualToString:@"all"])
     return YES;
-  
+
   return NO;
 }
 
@@ -92,7 +93,7 @@
 - (void)requestNonceManager {
   PALNonceRequest *request = [[PALNonceRequest alloc] init];
   CGSize windowSize = self.view.frame.size;
-    
+
   request.continuousPlayback = PALFlagOff;
   request.descriptionURL = [NSURL URLWithString:[self.palSDKMetadata objectForKey:@"descriptionURL"]];
   request.iconsSupported = YES;
@@ -119,6 +120,9 @@
             withRequest:(PALNonceRequest *)request
     didLoadNonceManager:(PALNonceManager *)nonceManager {
     NSLog(@"Programmatic access nonce: %@", nonceManager.nonce);
+    [[NSNotificationCenter defaultCenter] postNotificationName:RCTSetNonceValueNotification
+                                                        object:nil
+                                                      userInfo:@{@"nonce": nonceManager.nonce}];
     // Capture the created nonce manager and attach its gesture recognizer to the video view.
     self.nonceManager = nonceManager;
     [self.view addGestureRecognizer:self.nonceManager.gestureRecognizer];

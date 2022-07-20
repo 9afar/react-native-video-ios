@@ -6,26 +6,36 @@
 @property(nonatomic) PALNonceLoader *nonceLoader;
 /** The nonce manager result from the last successful nonce request. */
 @property(nonatomic) PALNonceManager *nonceManager;
+@property(nonatomic, weak) AVPlayer * tempPlayer; //Addig weak AV reference to condtionally load the player whenver the nonce is ready
 @end
 
 @implementation RCTVideoPlayerViewController
-static NSString *const RCTSetNonceValueNotification = @"RCTSetNonceValueNotification";
 
 - (void)viewDidLoad {
   [super viewDidLoad];
-
+    
   if(self.palSDKMetadata){
       self.nonceLoader = [[PALNonceLoader alloc] init];
       self.nonceLoader.delegate = self;
-      [self requestNonceManager];
+//      [self requestNonceManager];
   }
 }
 - (BOOL)shouldAutorotate {
 
   if (self.autorotate || self.preferredOrientation.lowercaseString == nil || [self.preferredOrientation.lowercaseString isEqualToString:@"all"])
     return YES;
-
+  
   return NO;
+}
+-(void)setPlayer:(AVPlayer *)player{
+    self.tempPlayer = player;
+    if(self.palSDKMetadata){
+        self.nonceLoader = [[PALNonceLoader alloc] init];
+        self.nonceLoader.delegate = self;
+        [self requestNonceManager];
+    }
+//    [self requestNonceManager];
+
 }
 
 - (void)viewDidDisappear:(BOOL)animated
@@ -120,12 +130,13 @@ static NSString *const RCTSetNonceValueNotification = @"RCTSetNonceValueNotifica
             withRequest:(PALNonceRequest *)request
     didLoadNonceManager:(PALNonceManager *)nonceManager {
     NSLog(@"Programmatic access nonce: %@", nonceManager.nonce);
-    [[NSNotificationCenter defaultCenter] postNotificationName:RCTSetNonceValueNotification
-                                                        object:nil
-                                                      userInfo:@{@"nonce": nonceManager.nonce}];
+        // [[NSNotificationCenter defaultCenter] postNotificationName:RCTSetNonceValueNotification
+        //                                                 object:nil
+        //                                               userInfo:@{@"nonce": nonceManager.nonce}];
     // Capture the created nonce manager and attach its gesture recognizer to the video view.
     self.nonceManager = nonceManager;
     [self.view addGestureRecognizer:self.nonceManager.gestureRecognizer];
+    [super setPlayer:_tempPlayer]; //super call to re-assign the player whenever the nonce is generated
 }
 
 - (void)nonceLoader:(PALNonceLoader *)nonceLoader

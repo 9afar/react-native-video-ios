@@ -43,7 +43,6 @@
 @property (nonatomic, copy) RCTDirectEventBlock onRestoreUserInterfaceForPictureInPictureStop;
 @property (nonatomic, copy) RCTDirectEventBlock onGetLicense;
 @property (nonatomic, copy) RCTDirectEventBlock onSkipIntro;
-@property (nonatomic, copy) RCTDirectEventBlock onNonceValueGenerated;
 @property (nonatomic, copy) RCTDirectEventBlock onMediaSelectionChange;
 @property (nonatomic, copy) RCTDirectEventBlock onAdEvent;
 @property (nonatomic, copy) RCTDirectEventBlock onPressHdToggle;

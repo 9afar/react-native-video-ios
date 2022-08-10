@@ -43,7 +43,6 @@ static NSString *const readyForDisplayKeyPath = @"readyForDisplay";
 static NSString *const playbackRate = @"rate";
 static NSString *const timedMetadata = @"timedMetadata";
 static NSString *const externalPlaybackActive = @"externalPlaybackActive";
-static NSString *const RCTSetNonceValueNotification = @"RCTSetNonceValueNotification";
 static YBPlugin *youboraPlugin = nil;
 static CustomAdapter * _adapter = nil;
 
@@ -118,7 +117,6 @@ static int const RCTVideoUnset = -1;
   NSDictionary *_shahidYouboraOptions;
   NSDictionary *_playerMetaData;
   NSArray *_adSegments;
-  NSDictionary *_palSDKMetadata;
   float _paddingBottomTrack;
 
   NSMutableArray *interstitialWatched;
@@ -276,10 +274,6 @@ static int const RCTVideoUnset = -1;
     if(self->_shahidYouboraOptions){
         NSString *contentId = [self->_shahidYouboraOptions objectForKey:@"contentId"];
         viewController.contentId = contentId;
-    }
-    if(_palSDKMetadata){
-        // FOR PAL SDK
-        viewController.palSDKMetadata =_palSDKMetadata;
     }
   viewController.view.frame = self.bounds;
   viewController.player = player;
@@ -539,7 +533,6 @@ static int const RCTVideoUnset = -1;
       if (self.onVideoLoadStart) {
         id uri = [self->_source objectForKey:@"uri"];
         id type = [self->_source objectForKey:@"type"];
-        [_playerViewController sendPlaybackStart];
         self.onVideoLoadStart(@{@"src": @{
                                     @"uri": uri ? uri : [NSNull null],
                                     @"type": type ? type : [NSNull null],
@@ -664,24 +657,6 @@ static int const RCTVideoUnset = -1;
         [self setPlayerItemForInterstitial:_playerItem];
     }
     _adSegments = segments;
-}
--(void) setNonce:(NSNotification*)notification
-{
-    NSDictionary* userInfo = notification.userInfo;
-    NSNumber* nonceString = (NSNumber*)userInfo[@"nonce"];
-    if(self.onNonceValueGenerated){
-        self.onNonceValueGenerated(@{@"nonce": nonceString ,@"target": self.reactTag });
-    }
-
-}
-- (void)setPalSDKMetadata:(NSDictionary *)palSDKMetadata{
-    _palSDKMetadata = palSDKMetadata;
-    if(palSDKMetadata){
-        [[NSNotificationCenter defaultCenter] addObserver:self
-                                                 selector:@selector(setNonce:)
-                                                     name:RCTSetNonceValueNotification
-                                                   object:nil];
-    }
 }
 - (NSURL*) urlFilePath:(NSString*) filepath {
   if ([filepath containsString:@"file://"]) {
@@ -1085,7 +1060,6 @@ static int const RCTVideoUnset = -1;
 - (void)playerItemDidReachEnd:(NSNotification *)notification
 {
   if(self.onVideoEnd) {
-    [_playerViewController sendPlaybackEnd];
     self.onVideoEnd(@{@"target": self.reactTag});
   }
 

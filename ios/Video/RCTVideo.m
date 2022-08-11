@@ -172,10 +172,10 @@ static int const RCTVideoUnset = -1;
                                                  name:UIApplicationWillEnterForegroundNotification
                                                object:nil];
 
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(audioRouteChanged:)
-                                                 name:AVAudioSessionRouteChangeNotification
-                                               object:nil];
+//    [[NSNotificationCenter defaultCenter] addObserver:self
+//                                             selector:@selector(audioRouteChanged:)
+//                                                 name:AVAudioSessionRouteChangeNotification
+//                                               object:nil];
   }
 
   return self;
@@ -1609,11 +1609,14 @@ static int const RCTVideoUnset = -1;
 }
 - (void)setPlayerUI
 {
+  @try{
+
     if(_playerMetaData){
         // Custom Icons
         if (@available(tvOS 15.0, *)) {
             bool showHDToggle = [[_playerMetaData objectForKey:@"showHDToggle"] boolValue];
             bool showNoAds = [[_playerMetaData objectForKey:@"showNoAds"] boolValue];
+            bool showSportStats = [[_playerMetaData objectForKey:@"showSportStats"] boolValue];
             NSMutableArray *customMenuItems = [[NSMutableArray alloc] init];
             if(showHDToggle){
                 UIImage *hdImage = [UIImage imageNamed:@"hd"];
@@ -1625,6 +1628,17 @@ static int const RCTVideoUnset = -1;
                     }
                 }];
                 [customMenuItems addObject:hdAction];
+            }
+            if(showSportStats){
+                UIImage *statsImage = [UIImage imageNamed:@"stats"];
+                UIAction *statsAction =  [UIAction actionWithTitle:@"stats" image:statsImage identifier:nil handler:^(UIAction* action){
+                    if(self.onPressSportStats){
+                        self.onPressSportStats(@{
+                            @"target": self.reactTag
+                        });
+                    }
+                }];
+                [customMenuItems addObject:statsAction];
             }
             if(showNoAds){
                 UIImage *noAdsImage = [UIImage imageNamed:@"no-ads"];
@@ -1739,6 +1753,9 @@ static int const RCTVideoUnset = -1;
         }
 
     }
+  } @catch(id anException) {
+     NSLog(@"****************** setPlayerUI  Error ******************");
+  }
 }
 - (void)usePlayerViewController
 {

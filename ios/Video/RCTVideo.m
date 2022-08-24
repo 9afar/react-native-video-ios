@@ -1784,6 +1784,7 @@ static int const RCTVideoUnset = -1;
         if (@available(tvOS 15.0, *)) {
             bool showHDToggle = [[_playerMetaData objectForKey:@"showHDToggle"] boolValue];
             bool showNoAds = [[_playerMetaData objectForKey:@"showNoAds"] boolValue];
+            bool showSportStats = [[_playerMetaData objectForKey:@"showSportStats"] boolValue];
             NSMutableArray *customMenuItems = [[NSMutableArray alloc] init];
             if(showHDToggle){
                 UIImage *hdImage = [UIImage imageNamed:@"hd"];
@@ -1795,6 +1796,17 @@ static int const RCTVideoUnset = -1;
                     }
                 }];
                 [customMenuItems addObject:hdAction];
+            }
+            if(showSportStats){
+                UIImage *statsImage = [UIImage imageNamed:@"stats"];
+                UIAction *statsAction =  [UIAction actionWithTitle:@"stats" image:statsImage identifier:nil handler:^(UIAction* action){
+                    if(self.onPressSportStats){
+                        self.onPressSportStats(@{
+                            @"target": self.reactTag
+                        });
+                    }
+                }];
+                [customMenuItems addObject:statsAction];
             }
             if(showNoAds){
                 UIImage *noAdsImage = [UIImage imageNamed:@"no-ads"];

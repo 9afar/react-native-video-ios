@@ -79,6 +79,7 @@ RCT_EXPORT_VIEW_PROPERTY(onSkipIntro, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onMediaSelectionChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onAdEvent, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onPressHdToggle, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onPressSportStats, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onPressNoAds, RCTDirectEventBlock);
 
 RCT_EXPORT_METHOD(stop){

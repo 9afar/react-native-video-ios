@@ -275,6 +275,11 @@ export default class Video extends Component {
       this.props.onPressNoAds(event.nativeEvent);
     }
   }
+  _onPressSportStats= (event) =>{
+    if (this.props.onPressSportStats) {
+      this.props.onPressSportStats(event.nativeEvent);
+    }
+  }
 
   getViewManagerConfig = viewManagerName => {
     if (!NativeModules.UIManager.getViewManagerConfig) {
@@ -366,7 +371,8 @@ export default class Video extends Component {
       onMediaSelectionChange : this._onMediaSelectionChange,
       onAdEvent: this._onAdEvent,
       onPressHdToggle: this._onPressHdToggle,
-      onPressNoAds: this._onPressNoAds
+      onPressNoAds: this._onPressNoAds,
+      onPressSportStats : this._onPressSportStats
     });
 
     const posterStyle = {

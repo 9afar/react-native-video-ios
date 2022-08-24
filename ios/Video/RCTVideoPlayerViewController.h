@@ -9,7 +9,6 @@
 #import <AVKit/AVKit.h>
 #import "RCTVideo.h"
 #import "RCTVideoPlayerViewControllerDelegate.h"
-#import <React/RCTComponent.h>
 @interface RCTVideoPlayerViewController : AVPlayerViewController <AVPlayerViewControllerDelegate>
 @property (nonatomic, weak) id<RCTVideoPlayerViewControllerDelegate> rctDelegate;
 
@@ -17,7 +16,4 @@
 @property (nonatomic, weak) NSString* preferredOrientation;
 @property (nonatomic, weak) NSString* contentId;
 @property (nonatomic) BOOL autorotate;
-
-- (void) sendPlaybackStart;
-- (void) sendPlaybackEnd;
 @end

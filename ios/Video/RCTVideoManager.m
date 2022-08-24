@@ -23,6 +23,7 @@ RCTVideo * _video;
 
 RCT_EXPORT_VIEW_PROPERTY(src, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(drm, NSDictionary);
+RCT_EXPORT_VIEW_PROPERTY(canUseNetworkResourcesForLiveStreamingWhilePaused, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(shahidYouboraOptions, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(playerMetaData, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(adSegments, NSArray);

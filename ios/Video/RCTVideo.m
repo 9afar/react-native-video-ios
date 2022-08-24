@@ -97,6 +97,7 @@ static int const RCTVideoUnset = -1;
   BOOL _paused;
   BOOL _repeat;
   BOOL _allowsExternalPlayback;
+  BOOL _canUseNetworkResourcesForLiveStreamingWhilePaused;
   NSArray * _textTracks;
   NSDictionary * _selectedTextTrack;
   NSDictionary * _selectedAudioTrack;
@@ -122,6 +123,7 @@ static int const RCTVideoUnset = -1;
   NSMutableArray *interstitialCompleted;
   AVInterstitialTimeRange *_selectedInterstitialCW;
   AVInterstitialTimeRange *_currentInterstitial;
+  NSNumber *_currentInterstitialIndex;
   float _pendingInterstitialSeekTime;
   NSArray *infoViewActions;
 
@@ -155,6 +157,7 @@ static int const RCTVideoUnset = -1;
     _playerBufferEmpty = YES;
     _playInBackground = false;
     _allowsExternalPlayback = YES;
+    _canUseNetworkResourcesForLiveStreamingWhilePaused = NO;
     _playWhenInactive = false;
     _pictureInPicture = false;
     _ignoreSilentSwitch = @"inherit"; // inherit, ignore, obey
@@ -410,7 +413,10 @@ static int const RCTVideoUnset = -1;
     }else if( currentTimeSecs >= 0 && self.onVideoProgress){
         self.onAdEvent(@{
             @"data": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
+            @"playableDuration": [self calculatePlayableDuration],
+            @"seekableDuration": [self calculateSeekableDuration],
             @"type": @"AdProgress",
+            @"index" : _currentInterstitialIndex,
             @"atValue": [NSNumber numberWithLongLong:currentTime.value],
             @"atTimescale": [NSNumber numberWithInt:currentTime.timescale],
             @"target": self.reactTag,
@@ -503,7 +509,12 @@ static int const RCTVideoUnset = -1;
         [self->_player removeObserver:self forKeyPath:externalPlaybackActive context:nil];
         self->_isExternalPlaybackActiveObserverRegistered = NO;
       }
+      if (@available(tvOS 9.3, *)) {
+            AVPlayerItemMetadataCollector * metadataCollector = [[AVPlayerItemMetadataCollector alloc] init];
+            [metadataCollector setDelegate:self queue:dispatch_get_main_queue()];
+            [self->_playerItem addMediaDataCollector:metadataCollector];
 
+      }
       self->_player = [AVPlayer playerWithPlayerItem:self->_playerItem];
       self->_player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
 
@@ -596,6 +607,24 @@ static int const RCTVideoUnset = -1;
     }];
   });
   _videoLoadStarted = YES;
+}
+
+- (void)metadataCollector:(AVPlayerItemMetadataCollector *)metadataCollector didCollectDateRangeMetadataGroups:(NSArray<AVDateRangeMetadataGroup *> *)metadataGroups indexesOfNewGroups:(NSIndexSet *)indexesOfNewGroups indexesOfModifiedGroups:(NSIndexSet *)indexesOfModifiedGroups API_AVAILABLE(tvos(9.3)){
+      if(metadataGroups.count > 0) {
+        AVDateRangeMetadataGroup *item = metadataGroups[0];
+          self.onTimedMetadata(@{
+           @"target": self.reactTag,
+           @"requestTrackingUrl": @"true",
+           @"metaData": item.description
+           });
+      }
+}
+
+- (void)setCanUseNetworkResourcesForLiveStreamingWhilePaused:(BOOL)canUseNetworkResourcesForLiveStreamingWhilePaused
+{
+    NSLog(@"canUseNetworkResourcesForLiveStreamingWhilePaused123 %d", canUseNetworkResourcesForLiveStreamingWhilePaused);
+    _canUseNetworkResourcesForLiveStreamingWhilePaused = canUseNetworkResourcesForLiveStreamingWhilePaused;
+    _playerItem.canUseNetworkResourcesForLiveStreamingWhilePaused = canUseNetworkResourcesForLiveStreamingWhilePaused;
 }
 
 - (void)setDrm:(NSDictionary *)drm {
@@ -832,24 +861,24 @@ static int const RCTVideoUnset = -1;
     // When timeMetadata is read the event onTimedMetadata is triggered
     if ([keyPath isEqualToString:timedMetadata]) {
       NSArray<AVMetadataItem *> *items = [change objectForKey:@"new"];
-      if (items && ![items isEqual:[NSNull null]] && items.count > 0) {
-        NSMutableArray *array = [NSMutableArray new];
-        for (AVMetadataItem *item in items) {
-          NSString *value = (NSString *)item.value;
-          NSString *identifier = item.identifier;
-
-          if (![value isEqual: [NSNull null]]) {
-            NSDictionary *dictionary = [[NSDictionary alloc] initWithObjects:@[value, identifier] forKeys:@[@"value", @"identifier"]];
-
-            [array addObject:dictionary];
-          }
-        }
-
-        self.onTimedMetadata(@{
-                               @"target": self.reactTag,
-                               @"metadata": array
-                               });
-      }
+//      if (items && ![items isEqual:[NSNull null]] && items.count > 0) {
+//        NSMutableArray *array = [NSMutableArray new];
+//        for (AVMetadataItem *item in items) {
+//          NSString *value = (NSString *)item.value;
+//          NSString *identifier = item.identifier;
+//
+//          if (![value isEqual: [NSNull null]]) {
+//            NSDictionary *dictionary = [[NSDictionary alloc] initWithObjects:@[value, identifier] forKeys:@[@"value", @"identifier"]];
+//
+//            [array addObject:dictionary];
+//          }
+//        }
+//
+//        self.onTimedMetadata(@{
+//                               @"target": self.reactTag,
+//                               @"metadata": array
+//                               });
+//      }
     }
 
     if ([keyPath isEqualToString:statusKeyPath]) {
@@ -1616,14 +1645,19 @@ static int const RCTVideoUnset = -1;
 
 - (bool) isAdsRunning: (CMTime) currentTime {
     bool adsBreak = false;
+    bool adFinished = false;
     [self setAdsRunning:false];
+
     if(_playerItem.interstitialTimeRanges){
-         for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
+        for (int i = 0; i < [_playerItem.interstitialTimeRanges count]; i++){
+            AVInterstitialTimeRange  *interstitialRange =_playerItem.interstitialTimeRanges[i];
              // to set the _currentInterstitial
+
              if (CMTimeRangeContainsTime(interstitialRange.timeRange,currentTime) &&
                  ![interstitialCompleted containsObject: interstitialRange]){
                  if(!_currentInterstitial){
                      _currentInterstitial = interstitialRange;
+                     _currentInterstitialIndex= [NSNumber numberWithInt:i];
                      [self willPresentInterstitialTimeRange: interstitialRange];
                   }
                  [self setAdsRunning:true];
@@ -1647,12 +1681,22 @@ static int const RCTVideoUnset = -1;
              }
 
          }
+        if(_currentInterstitial){
+            long endTime = _currentInterstitial.timeRange.start.value + _currentInterstitial.timeRange.duration.value;
+
+            if(![interstitialCompleted containsObject: _currentInterstitial]
+               && CMTimeCompare(currentTime , CMTimeMakeWithSeconds(endTime, 1000)) == 1){
+                adFinished = true;
+            }
+        }
 
     }
     // if ads finished and still there is _currentInterstitial call didPresentInterstitialTimeRange
-    if(_currentInterstitial && !adsBreak){
+    if(_currentInterstitial && adFinished){
         [self didPresentInterstitialTimeRange: _currentInterstitial];
         _currentInterstitial = nil;
+        _currentInterstitialIndex = nil;
+        adFinished = false;
     }
     return adsBreak;
 }
@@ -1691,6 +1735,7 @@ static int const RCTVideoUnset = -1;
         CMTime currentTime = _player.currentTime;
         self.onAdEvent(@{
             @"data": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
+            @"index" : _currentInterstitialIndex ,
             @"type": @"AdBreakStarted",
             @"target" : self.reactTag
         });
@@ -1713,6 +1758,7 @@ static int const RCTVideoUnset = -1;
         CMTime currentTime = _player.currentTime;
         self.onAdEvent(@{
             @"data": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
+            @"index" : _currentInterstitialIndex,
             @"type": @"AdBreakEnded",
             @"target" : self.reactTag
         });

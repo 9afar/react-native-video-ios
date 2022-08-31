@@ -1,0 +1,19 @@
+framework module ProgrammaticAccessLibrary {
+  umbrella header "ProgrammaticAccessLibrary.h"
+
+  export *
+  module * { export * }
+
+  link framework "AdSupport"
+  link framework "Foundation"
+  link framework "QuartzCore"
+  link framework "SystemConfiguration"
+  link framework "UIKit"
+
+  header "PALDefines.h"
+  header "PALNonceError.h"
+  header "PALNonceLoader.h"
+  header "PALNonceManager.h"
+  header "PALNonceRequest.h"
+  header "PALSettings.h"
+}

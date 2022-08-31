@@ -8,6 +8,8 @@
 #import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>
 #import <CoreMedia/CoreMedia.h>
 
+static NSString *const RCTSetPendingSeekTimeNotification = @"RCTSetPendingSeekTimeNotification";
+
 @interface CustomAdapter : YBAVPlayerAdapter
   @property NSDictionary *customArguments;
 @end
@@ -655,8 +657,22 @@ static int const RCTVideoUnset = -1;
     if(segments && segments.count > 0){
         _playerItem.interstitialTimeRanges = [self makeInterstitialTimeRanges:segments];
         [self setPlayerItemForInterstitial:_playerItem];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(setPendingSeekTime:)
+                                                     name:RCTSetPendingSeekTimeNotification
+                                                   object:nil];
     }
     _adSegments = segments;
+}
+-(void) setPendingSeekTime:(NSNotification*)notification
+{
+    NSDictionary* userInfo = notification.userInfo;
+    float targetTime = [userInfo[@"targetTime"] floatValue] ;
+    _pendingInterstitialSeekTime= targetTime + 4;
+
+    AVInterstitialTimeRange *interstitialMatched = userInfo[@"interstitialMatched"];
+    _selectedInterstitialCW = interstitialMatched;
+
 }
 - (NSURL*) urlFilePath:(NSString*) filepath {
   if ([filepath containsString:@"file://"]) {
@@ -1184,12 +1200,34 @@ static int const RCTVideoUnset = -1;
                          };
   [self setSeek:info];
 }
+-(CMTime) getInterstitialCmSeekTime :(NSNumber *)seekTime {
+
+    int timeScale = 1000;
+    CMTime cmSeekTime = CMTimeMakeWithSeconds([seekTime floatValue], timeScale);
+
+    if(_playerItem.interstitialTimeRanges){
+        AVInterstitialTimeRange *interstitialMatched;
+        for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
+            if ([seekTime longLongValue] >= interstitialRange.timeRange.start.value
+                && ![interstitialCompleted containsObject: interstitialRange]){
+                interstitialMatched = interstitialRange;
+            }
+        }
+        // Handle interstitial with seek ( CW , SKIP INTRO)
+        if(interstitialMatched){
+            _pendingInterstitialSeekTime= [seekTime floatValue];
+            _selectedInterstitialCW = interstitialMatched;
+            cmSeekTime = CMTimeMakeWithSeconds(interstitialMatched.timeRange.start.value,
+                                         timeScale);;
+        }
+    }
+    return cmSeekTime;
+}
 
 - (void)setSeek:(NSDictionary *)info
 {
   NSNumber *seekTime = info[@"time"];
   NSNumber *seekTolerance = info[@"tolerance"];
-
   int timeScale = 1000;
 
   AVPlayerItem *item = _player.currentItem;
@@ -1201,22 +1239,9 @@ static int const RCTVideoUnset = -1;
     // TODO figure out a good tolerance level
     CMTime tolerance = CMTimeMake([seekTolerance floatValue], timeScale);
     BOOL wasPaused = _paused;
-        if(_playerItem.interstitialTimeRanges){
-            AVInterstitialTimeRange *interstitialMatched;
-            for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
-                if ([seekTime longLongValue] >= interstitialRange.timeRange.start.value
-                    && ![interstitialCompleted containsObject: interstitialRange]){
-                    interstitialMatched = interstitialRange;
-                }
-            }
-            // Handle interstitial with seek ( CW , SKIP INTRO)
-            if(interstitialMatched){
-                _pendingInterstitialSeekTime= [seekTime floatValue];
-                _selectedInterstitialCW = interstitialMatched;
-                cmSeekTime = CMTimeMakeWithSeconds(interstitialMatched.timeRange.start.value,
-                                                   timeScale);
-            }
-        }
+
+    cmSeekTime = [self getInterstitialCmSeekTime:seekTime];
+
     if (CMTimeCompare(current, cmSeekTime) != 0) {
       if (!wasPaused) [_player pause];
       [_player seekToTime:cmSeekTime toleranceBefore:tolerance toleranceAfter:tolerance completionHandler:^(BOOL finished) {

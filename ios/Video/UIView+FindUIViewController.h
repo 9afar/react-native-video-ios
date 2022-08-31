@@ -13,6 +13,7 @@
 - (UIViewController *) firstAvailableUIViewController;
 - (id) traverseResponderChainForUIViewController;
 - (void) setPlayerItemForInterstitial :(AVPlayerItem*)playerItem;
+- (void) setPlayerForInterstitial :(AVPlayer*)player;
 - (void) setInterstitialWatched :(NSArray *)interstitialWatched;
 - (void) setInterstitialCompleted :(NSArray *)interstitialCompleted;
 - (void) setAdsRunning :(BOOL)adsRunning;

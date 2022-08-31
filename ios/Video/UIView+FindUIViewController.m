@@ -1,6 +1,7 @@
 //  Source: http://stackoverflow.com/a/3732812/1123156
 
 #import "UIView+FindUIViewController.h"
+static NSString *const RCTSetPendingSeekTimeNotification = @"RCTSetPendingSeekTimeNotification";
 
 @implementation UIView (FindUIViewController)
 AVPlayerItem *_playerItem;
@@ -47,13 +48,26 @@ timeToSeekAfterUserNavigatedFromTime:(CMTime)oldTime
      }
     if(_playerItem.interstitialTimeRanges){
         CMTimeRange seekRange = CMTimeRangeFromTimeToTime(oldTime, targetTime);
+        AVInterstitialTimeRange *interstitialMatched;
         for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
             if (CMTimeRangeContainsTimeRange(seekRange , interstitialRange.timeRange)){
-                if (_interstitialCompleted && [_interstitialCompleted containsObject: interstitialRange]) {
-                    return targetTime;
-                }
-                return interstitialRange.timeRange.start;
+                interstitialMatched = interstitialRange;
             }
+        }
+        if(interstitialMatched){
+            if (_interstitialCompleted && [_interstitialCompleted containsObject: interstitialMatched]) {
+                return targetTime;
+            }
+
+            [[NSNotificationCenter defaultCenter]
+             postNotificationName:RCTSetPendingSeekTimeNotification
+             object:nil
+             userInfo:@{
+                @"targetTime":[NSNumber numberWithFloat:CMTimeGetSeconds(targetTime)],
+                @"interstitialMatched" :interstitialMatched
+            }];
+
+            return interstitialMatched.timeRange.start;
         }
     }
     return targetTime;

@@ -418,7 +418,7 @@ static int const RCTVideoUnset = -1;
             @"playableDuration": [self calculatePlayableDuration],
             @"seekableDuration": [self calculateSeekableDuration],
             @"type": @"AdProgress",
-            @"index" : _currentInterstitialIndex,
+            @"index" : _currentInterstitialIndex ? _currentInterstitialIndex : @"",
             @"atValue": [NSNumber numberWithLongLong:currentTime.value],
             @"atTimescale": [NSNumber numberWithInt:currentTime.timescale],
             @"target": self.reactTag,
@@ -1760,7 +1760,7 @@ static int const RCTVideoUnset = -1;
         CMTime currentTime = _player.currentTime;
         self.onAdEvent(@{
             @"data": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
-            @"index" : _currentInterstitialIndex ,
+            @"index" : _currentInterstitialIndex ? _currentInterstitialIndex : @"",
             @"type": @"AdBreakStarted",
             @"target" : self.reactTag
         });
@@ -1783,7 +1783,7 @@ static int const RCTVideoUnset = -1;
         CMTime currentTime = _player.currentTime;
         self.onAdEvent(@{
             @"data": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
-            @"index" : _currentInterstitialIndex,
+            @"index" : _currentInterstitialIndex ? _currentInterstitialIndex : @"",
             @"type": @"AdBreakEnded",
             @"target" : self.reactTag
         });

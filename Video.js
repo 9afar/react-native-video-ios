@@ -193,6 +193,11 @@ export default class Video extends Component {
       this.props.onPlaybackRateChange(event.nativeEvent);
     }
   };
+   _onEpisodeSelect = (event) => {
+    if (this.props.onEpisodeSelect) {
+      this.props.onEpisodeSelect(event.nativeEvent);
+    }
+  };
 
   _onExternalPlaybackChange = (event) => {
     if (this.props.onExternalPlaybackChange) {
@@ -362,6 +367,7 @@ export default class Video extends Component {
       onPlaybackStalled: this._onPlaybackStalled,
       onPlaybackResume: this._onPlaybackResume,
       onPlaybackRateChange: this._onPlaybackRateChange,
+      onEpisodeSelect: this._onEpisodeSelect,
       onAudioFocusChanged: this._onAudioFocusChanged,
       onAudioBecomingNoisy: this._onAudioBecomingNoisy,
       onGetLicense: nativeProps.drm && nativeProps.drm.getLicense && this._onGetLicense,

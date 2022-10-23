@@ -7,8 +7,11 @@
 #include <AVFoundation/AVFoundation.h>
 #import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>
 #import <CoreMedia/CoreMedia.h>
+#import "EpisodesViewController.h"
+#import "TVUIKit/TVUIKit.h"
 
 static NSString *const RCTSetPendingSeekTimeNotification = @"RCTSetPendingSeekTimeNotification";
+static NSString *const RCTHidePlayerControls = @"RCTHidePlayerControls";
 
 @interface CustomAdapter : YBAVPlayerAdapter
   @property NSDictionary *customArguments;
@@ -76,6 +79,7 @@ static int const RCTVideoUnset = -1;
 
   /* Required to publish events */
   RCTEventDispatcher *_eventDispatcher;
+  EpisodesViewController *_episodesTab;
   BOOL _playbackRateObserverRegistered;
   BOOL _isExternalPlaybackActiveObserverRegistered;
   BOOL _videoLoadStarted;
@@ -218,12 +222,7 @@ static int const RCTVideoUnset = -1;
              }];
           }
 }
-- (void)skipIntro:(UIButton*)sender
-{
-    if(self.onSkipIntro) {
-        self.onSkipIntro(@{@"target": self.reactTag});
-    }
-}
+
 - (void)playerControlInteraction:(BOOL)toggle{
     dispatch_sync(dispatch_get_main_queue(), ^{
         self->_playerViewController.view.userInteractionEnabled= toggle;
@@ -244,15 +243,30 @@ static int const RCTVideoUnset = -1;
                     }];
                     self->_playerViewController.contextualActions=@[skipAction];
                 } else {
-                    UIButton *button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-                    button.frame =  CGRectMake(1600, 990, 250, 70.0);
-                    [button setTitle:NSLocalizedString(@"SkipIntro", nil) forState:UIControlStateNormal];
-                    [button.titleLabel setFont:[UIFont fontWithName:@"Helvetica-Bold" size:30]];
-                    [button addTarget:self action:@selector(skipIntro:) forControlEvents:UIControlEventAllEvents];
-                    [button preferredFocusEnvironments];
+                    TVCardView *buttonView = [[TVCardView alloc]  initWithFrame: CGRectMake(1600, 900, 250, 100)];
+                      UILabel *label = [[UILabel alloc] initWithFrame: CGRectMake(10, 25, buttonView.frame.size.width, 0)];
+
+                    label.text =NSLocalizedString(@"SkipIntro", nil);
+                    [label sizeToFit];
+                    [label setNumberOfLines: 0];
+                     label.textColor= [UIColor blackColor];
+                    label.font = [UIFont fontWithName:@"Helvetica-Bold" size:30];
+                    label.textAlignment = NSTextAlignmentCenter;
+                    [buttonView insertSubview:label atIndex:1];
+
+
+                    UITapGestureRecognizer *singleTap=[[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(skippingIntro)];
+                    [buttonView addGestureRecognizer:singleTap];
+                    buttonView.userInteractionEnabled = YES;
+
                     UIViewController *viewControllerSkip = [UIViewController alloc];
-                    [viewControllerSkip.view addSubview:button ];
+
+                     [viewControllerSkip.view insertSubview:buttonView atIndex:1];
+
+
+
                     viewControllerSkip.modalPresentationStyle=UIModalPresentationOverFullScreen;
+                    viewControllerSkip.view.frame=_playerViewController.view.bounds;
                     [_playerViewController presentViewController:viewControllerSkip animated:YES completion:nil];
                 }
             } else {
@@ -265,7 +279,12 @@ static int const RCTVideoUnset = -1;
         }
     });
 }
+- (void)skippingIntro {
 
+    if(self.onSkipIntro) {
+        self.onSkipIntro(@{@"target": self.reactTag});
+    }
+}
 
 - (RCTVideoPlayerViewController*)createPlayerViewController:(AVPlayer*)player
                                              withPlayerItem:(AVPlayerItem*)playerItem {
@@ -1041,6 +1060,10 @@ static int const RCTVideoUnset = -1;
                                            selector:@selector(didFailToFinishPlaying:)
                                                name: AVPlayerItemFailedToPlayToEndTimeNotification
                                              object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(didFailToFinishPlaying:)
+                                                 name: AVPlayerItemFailedToPlayToEndTimeNotification
+                                               object:nil];
 
 }
 
@@ -1666,6 +1689,48 @@ static int const RCTVideoUnset = -1;
     }
     return adBreaksCMTime;
 }
+-(void) hidePlayerControls:(NSNotification*)notification
+{
+    [_playerViewController dismissViewControllerAnimated:true completion:^{
+    }];
+
+}
+- (EpisodesViewController*) prepareEpsiodesViewController{
+    NSArray *episodes = [_playerMetaData objectForKey:@"episodesCards"];
+    NSString *contentId = [_playerMetaData objectForKey:@"id"];
+
+    UICollectionViewFlowLayout *flowLayout = [[UICollectionViewFlowLayout alloc] init];
+    flowLayout.minimumInteritemSpacing = 45;
+    flowLayout.minimumLineSpacing = 45;
+    if (@available(tvOS 15.0, *)) {
+        flowLayout.sectionInset = UIEdgeInsetsMake(-30,64,0,64);
+        flowLayout.itemSize = CGSizeMake(356, 200);
+
+    }else{
+        flowLayout.sectionInset = UIEdgeInsetsMake(130,64,64,64);
+        flowLayout.itemSize = CGSizeMake(500, 300);
+
+    }
+    [flowLayout setScrollDirection:UICollectionViewScrollDirectionHorizontal];
+
+    _episodesTab = [[EpisodesViewController alloc] initWithCollectionViewLayout:flowLayout];
+    _episodesTab.episodes = episodes;
+      _episodesTab.onEpisodeSelect = self.onEpisodeSelect;
+    _episodesTab.currentEpisodeId = contentId;
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(hidePlayerControls:)
+                                                 name:RCTHidePlayerControls
+                                               object:nil];
+    if (@available(tvOS 15.0, *)) {
+        _episodesTab.preferredContentSize=CGSizeMake(1920, 350);
+
+    }else{
+        _episodesTab.preferredContentSize=CGSizeMake(1920, 450);
+
+
+    }
+    return _episodesTab;
+}
 //==============================ADS FUNCTIONS==================================
 
 - (bool) isAdsRunning: (CMTime) currentTime {
@@ -1932,8 +1997,31 @@ static int const RCTVideoUnset = -1;
             }
             [self->_playerItem  setExternalMetadata:metadataItems];
         }
+        NSDictionary *episodes = [_playerMetaData objectForKey:@"episodesCards"];
+        if(episodes && ![[NSString stringWithFormat:@"%@" ,episodes] isEqual:@"<null>"]){
 
-        if (@available(iOS 13.0, tvOS 13.0, *)) {
+            EpisodesViewController *epsiodesViewController = [self prepareEpsiodesViewController];
+            epsiodesViewController.title = NSLocalizedString(@"Episodes", nil);
+
+             if (@available(tvOS 15.0, *)) {
+                _playerViewController.customInfoViewControllers=@[
+                    epsiodesViewController
+                ];
+            } else if(@available(tvOS 13.0, *)){
+
+                UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(135, 40, 200, 40)];
+                label.text =NSLocalizedString(@"Episodes", nil);
+                label.textColor = [UIColor whiteColor];
+
+                label.layer.shadowColor = [label.textColor CGColor];
+                label.layer.shadowOffset = CGSizeMake(0.0, 0.0);
+
+                _playerViewController.customOverlayViewController = epsiodesViewController;
+                [_playerViewController.customOverlayViewController.view addSubview:label];
+            }
+        }
+
+        if (@available(tvOS 13.0, *)) {
             [[NSNotificationCenter defaultCenter] addObserver:self
                                                      selector:@selector(handleMediaSelectionChange:)
                                                      name:AVPlayerItemMediaSelectionDidChangeNotification

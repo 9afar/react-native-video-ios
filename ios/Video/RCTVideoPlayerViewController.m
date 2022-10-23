@@ -5,7 +5,6 @@
 @end
 
 @implementation RCTVideoPlayerViewController
-
 - (BOOL)shouldAutorotate {
 
   if (self.autorotate || self.preferredOrientation.lowercaseString == nil || [self.preferredOrientation.lowercaseString isEqualToString:@"all"])

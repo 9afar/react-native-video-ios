@@ -1,13 +1,13 @@
 //  Source: http://stackoverflow.com/a/3732812/1123156
 
 #import "UIView+FindUIViewController.h"
+static NSString *const RCTSetPendingSeekTimeNotification = @"RCTSetPendingSeekTimeNotification";
 
 @implementation UIView (FindUIViewController)
 AVPlayerItem *_playerItem;
-AVPlayer *_player;
-NSMutableArray *interstitialWatched;
-AVInterstitialTimeRange *_selectedInterstitialCW;
-float _pendingSeekTime;
+NSArray *_interstitialWatched;
+NSArray *_interstitialCompleted;
+bool _adsRunning;
 
 - (UIViewController *) firstAvailableUIViewController{
     // convenience function for casting and to "mask" the recursive function
@@ -27,75 +27,47 @@ float _pendingSeekTime;
 - (void) setPlayerItemForInterstitial:(AVPlayerItem *)playerItem {
     _playerItem = playerItem;
 }
-- (void) resetInterstitialParam{
-    interstitialWatched= nil;
-    _playerItem= nil;
-    _player =nil;
-    _selectedInterstitialCW= nil;
-    _pendingSeekTime = 0;
+- (void) setAdsRunning:(bool)adsRunning {
+    _adsRunning = adsRunning;
 }
-- (void) setPendingSeek:(float)time{
-    _pendingSeekTime= time;
+- (void) setInterstitialWatched:(NSArray *)interstitialWatched {
+    _interstitialWatched = interstitialWatched;
 }
-- (void) setPlayerForInterstitial:(AVPlayer *)player{
-    _player= player;
-}
-- (void) setSelectedInterstitialCW:(AVInterstitialTimeRange *)interstitial{
-    _selectedInterstitialCW= interstitial;
-}
-#pragma mark - AVPlayerViewControllerDelegate
--(void)playerViewController:(AVPlayerViewController *)playerViewController willPresentInterstitialTimeRange:(AVInterstitialTimeRange *)interstitial{
-    if(!interstitialWatched){
-        interstitialWatched = [NSMutableArray array];
-    }
-    if([interstitialWatched containsObject: interstitial]){
-        if(_selectedInterstitialCW == interstitial && _pendingSeekTime > 0){
-            CMTime cmSeekTime = CMTimeMakeWithSeconds(_pendingSeekTime, 1000);
-            [_player seekToTime:cmSeekTime completionHandler:^(BOOL finished) {
-                _selectedInterstitialCW = nil;
-                _pendingSeekTime = 0;
-            }];
-        }
-    }else {
-        [interstitialWatched addObject:interstitial];
-        playerViewController.requiresLinearPlayback = true;
-    }
-
-    if (@available(tvOS 15.0, *)) {
-        [playerViewController setTransportBarIncludesTitleView: false ];
-    }
-}
-- (void)playerViewController:(AVPlayerViewController *)playerViewController didPresentInterstitialTimeRange:(AVInterstitialTimeRange *)interstitial{
-
-    playerViewController.requiresLinearPlayback = false;
-    if (@available(tvOS 15.0, *)) {
-        [playerViewController setTransportBarIncludesTitleView: true ];
-    }
-    if(_selectedInterstitialCW == interstitial && _pendingSeekTime > 0){
-        CMTime cmSeekTime = CMTimeMakeWithSeconds(_pendingSeekTime, 1000);
-        [_player seekToTime:cmSeekTime completionHandler:^(BOOL finished) {
-            _selectedInterstitialCW = nil;
-            _pendingSeekTime = 0;
-        }];
-    }
+- (void) setInterstitialCompleted:(NSArray *)interstitialCompleted {
+    _interstitialCompleted = interstitialCompleted;
 }
 
 - (CMTime)playerViewController:(AVPlayerViewController *)playerViewController
 timeToSeekAfterUserNavigatedFromTime:(CMTime)oldTime
                         toTime:(CMTime)targetTime{
-    // only to foward
-    if(CMTimeCompare(oldTime,targetTime)== 1)  {
-        return targetTime;
+    if(_adsRunning){
+        return oldTime;
     }
+    if(CMTimeCompare(oldTime,targetTime)== 1)  {
+         return targetTime;
+     }
     if(_playerItem.interstitialTimeRanges){
-        CMTimeRange seekRange = CMTimeRangeMake(oldTime, targetTime);
+        CMTimeRange seekRange = CMTimeRangeFromTimeToTime(oldTime, targetTime);
+        AVInterstitialTimeRange *interstitialMatched;
         for (AVInterstitialTimeRange *interstitialRange in _playerItem.interstitialTimeRanges) {
-            if (CMTimeRangeContainsTime(seekRange , interstitialRange.timeRange.start)){
-                if (interstitialWatched && [interstitialWatched containsObject: interstitialRange]) {
-                    return targetTime;
-                }
-                return interstitialRange.timeRange.start;
+            if (CMTimeRangeContainsTimeRange(seekRange , interstitialRange.timeRange)){
+                interstitialMatched = interstitialRange;
             }
+        }
+        if(interstitialMatched){
+            if (_interstitialCompleted && [_interstitialCompleted containsObject: interstitialMatched]) {
+                return targetTime;
+            }
+
+            [[NSNotificationCenter defaultCenter]
+             postNotificationName:RCTSetPendingSeekTimeNotification
+             object:nil
+             userInfo:@{
+                @"targetTime":[NSNumber numberWithFloat:CMTimeGetSeconds(targetTime)],
+                @"interstitialMatched" :interstitialMatched
+            }];
+
+            return interstitialMatched.timeRange.start;
         }
     }
     return targetTime;

@@ -10,13 +10,27 @@
 		D1107C0A2110259000073188 /* UIView+FindUIViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D1107C032110259000073188 /* UIView+FindUIViewController.m */; };
 		D1107C0B2110259000073188 /* UIView+FindUIViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D1107C032110259000073188 /* UIView+FindUIViewController.m */; };
 		D1107C0C2110259000073188 /* RCTVideo.m in Sources */ = {isa = PBXBuildFile; fileRef = D1107C052110259000073188 /* RCTVideo.m */; };
+
+    
+          
+            
+    
+
+          
+          
+            
+    
+
+          
+    
+    @@ -41,6 +43,7 @@
+  
 		D1107C0D2110259000073188 /* RCTVideo.m in Sources */ = {isa = PBXBuildFile; fileRef = D1107C052110259000073188 /* RCTVideo.m */; };
 		D1107C0E2110259000073188 /* RCTVideoManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D1107C062110259000073188 /* RCTVideoManager.m */; };
 		D1107C0F2110259000073188 /* RCTVideoManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D1107C062110259000073188 /* RCTVideoManager.m */; };
 		D1107C102110259000073188 /* RCTVideoPlayerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D1107C082110259000073188 /* RCTVideoPlayerViewController.m */; };
 		D1107C112110259000073188 /* RCTVideoPlayerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D1107C082110259000073188 /* RCTVideoPlayerViewController.m */; };
 /* End PBXBuildFile section */
-
 /* Begin PBXCopyFilesBuildPhase section */
 		58B511D91A9E6C8500147676 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -37,13 +51,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
 		134814201AA4EA6300B7C361 /* libRCTVideo.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRCTVideo.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		641E28441F0EEC8500443AF6 /* libRCTVideo.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRCTVideo.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1107C012110259000073188 /* RCTVideoPlayerViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RCTVideoPlayerViewController.h; path = Video/RCTVideoPlayerViewController.h; sourceTree = "<group>"; };
 		D1107C022110259000073188 /* RCTVideoPlayerViewControllerDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RCTVideoPlayerViewControllerDelegate.h; path = Video/RCTVideoPlayerViewControllerDelegate.h; sourceTree = "<group>"; };
 		D1107C032110259000073188 /* UIView+FindUIViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = "UIView+FindUIViewController.m"; path = "Video/UIView+FindUIViewController.m"; sourceTree = "<group>"; };
+
+    
+        
+          
+    
+
+        
+    
+    @@ -57,13 +60,15 @@
+  
 		D1107C042110259000073188 /* UIView+FindUIViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "UIView+FindUIViewController.h"; path = "Video/UIView+FindUIViewController.h"; sourceTree = "<group>"; };
 		D1107C052110259000073188 /* RCTVideo.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RCTVideo.m; path = Video/RCTVideo.m; sourceTree = "<group>"; };
 		D1107C062110259000073188 /* RCTVideoManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RCTVideoManager.m; path = Video/RCTVideoManager.m; sourceTree = "<group>"; };
@@ -51,7 +74,6 @@
 		D1107C082110259000073188 /* RCTVideoPlayerViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RCTVideoPlayerViewController.m; path = Video/RCTVideoPlayerViewController.m; sourceTree = "<group>"; };
 		D1107C092110259000073188 /* RCTVideoManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RCTVideoManager.h; path = Video/RCTVideoManager.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
 /* Begin PBXFrameworksBuildPhase section */
 		58B511D81A9E6C8500147676 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -67,8 +89,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-/* End PBXFrameworksBuildPhase section */
 
+    
+        
+          
+    
+
+        
+    
+    @@ -88,6 +93,7 @@
+  
+/* End PBXFrameworksBuildPhase section */
 /* Begin PBXGroup section */
 		134814211AA4EA7D00B7C361 /* Products */ = {
 			isa = PBXGroup;
@@ -91,6 +122,21 @@
 				D1107C072110259000073188 /* RCTVideo.h */,
 				D1107C052110259000073188 /* RCTVideo.m */,
 				D1107C092110259000073188 /* RCTVideoManager.h */,
+
+    
+          
+            
+    
+
+          
+          
+            
+    
+
+          
+    
+    @@ -163,6 +169,7 @@
+  
 				D1107C062110259000073188 /* RCTVideoManager.m */,
 				D1107C012110259000073188 /* RCTVideoPlayerViewController.h */,
 				D1107C082110259000073188 /* RCTVideoPlayerViewController.m */,
@@ -104,7 +150,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
-
 /* Begin PBXNativeTarget section */
 		58B511DA1A9E6C8500147676 /* RCTVideo */ = {
 			isa = PBXNativeTarget;
@@ -141,7 +186,6 @@
 			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
-
 /* Begin PBXProject section */
 		58B511D31A9E6C8500147676 /* Project object */ = {
 			isa = PBXProject;
@@ -166,6 +210,21 @@
 				en,
 			);
 			mainGroup = 58B511D21A9E6C8500147676;
+
+    
+          
+            
+    
+
+          
+          
+            
+    
+
+          
+    
+    @@ -280,6 +287,10 @@
+  
 			productRefGroup = 58B511D21A9E6C8500147676;
 			projectDirPath = "";
 			projectRoot = "";
@@ -175,7 +234,6 @@
 			);
 		};
 /* End PBXProject section */
-
 /* Begin PBXSourcesBuildPhase section */
 		58B511D71A9E6C8500147676 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -200,7 +258,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
 /* Begin XCBuildConfiguration section */
 		58B511ED1A9E6C8500147676 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -283,6 +340,16 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+
+    
+        
+          
+    
+
+        
+    
+    @@ -295,6 +306,10 @@
+  
 					"$(SRCROOT)/Vendor/SPTPersistentCache/include/**",
 				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
@@ -298,6 +365,16 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+
+    
+        
+          
+    
+
+        
+    
+    @@ -316,6 +331,10 @@
+  
 					"$(SRCROOT)/Vendor/SPTPersistentCache/include/**",
 				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
@@ -319,6 +396,16 @@
 				GCC_NO_COMMON_BLOCKS = YES;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = RCTVideo;
+
+    
+        
+          
+    
+
+        
+    
+    @@ -335,6 +354,10 @@
+  
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
 				TVOS_DEPLOYMENT_TARGET = 10.2;
@@ -338,6 +425,16 @@
 				GCC_NO_COMMON_BLOCKS = YES;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = RCTVideo;
+
+    
+          
+            
+    
+
+          
+    
+    
+  
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
 				TVOS_DEPLOYMENT_TARGET = 10.2;
@@ -345,7 +442,6 @@
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
-
 /* Begin XCConfigurationList section */
 		58B511D61A9E6C8500147676 /* Build configuration list for PBXProject "RCTVideo" */ = {
 			isa = XCConfigurationList;

@@ -421,7 +421,10 @@ Video.propTypes = {
     PropTypes.number,
     PropTypes.object
   ]),
-  maxResolution: PropTypes.number,
+  maxResolution: PropTypes.shape({
+    width: PropTypes.number,
+    height: PropTypes.number,
+  }),
   resolutionsMenu: PropTypes.shape({
     title: PropTypes.string,
     items: PropTypes.arrayOf(PropTypes.shape({

@@ -260,6 +260,11 @@ export default class Video extends Component {
       this.props.onSkipIntro();
     }
   }
+  _onSeasonsSelect = (event) => {
+    if (this.props.onSeasonsSelect) {
+      this.props.onSeasonsSelect();
+    }
+  }
   _onMediaSelectionChange = (event) => {
     if (this.props.onMediaSelectionChange) {
       this.props.onMediaSelectionChange(event.nativeEvent);
@@ -374,6 +379,7 @@ export default class Video extends Component {
       onPictureInPictureStatusChanged: this._onPictureInPictureStatusChanged,
       onRestoreUserInterfaceForPictureInPictureStop: this._onRestoreUserInterfaceForPictureInPictureStop,
       onSkipIntro : this._onSkipIntro,
+      onSeasonsSelect : this._onSeasonsSelect,
       onMediaSelectionChange : this._onMediaSelectionChange,
       onAdEvent: this._onAdEvent,
       onPressHdToggle: this._onPressHdToggle,

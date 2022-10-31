@@ -82,6 +82,7 @@ RCT_EXPORT_VIEW_PROPERTY(onPressHdToggle, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onPressSportStats, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onPressNoAds, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onEpisodeSelect, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onSeasonsSelect, RCTDirectEventBlock);
 
 RCT_EXPORT_METHOD(stop){
     [_video stop];

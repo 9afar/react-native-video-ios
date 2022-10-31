@@ -1700,32 +1700,32 @@ static int const RCTVideoUnset = -1;
     NSString *contentId = [_playerMetaData objectForKey:@"id"];
 
     UICollectionViewFlowLayout *flowLayout = [[UICollectionViewFlowLayout alloc] init];
-    flowLayout.minimumInteritemSpacing = 45;
-    flowLayout.minimumLineSpacing = 45;
+    flowLayout.minimumInteritemSpacing = 0;
+    flowLayout.minimumLineSpacing = -25;
     if (@available(tvOS 15.0, *)) {
         flowLayout.sectionInset = UIEdgeInsetsMake(-30,64,0,64);
-        flowLayout.itemSize = CGSizeMake(356, 200);
+        flowLayout.itemSize = CGSizeMake(420, 270);
 
     }else{
         flowLayout.sectionInset = UIEdgeInsetsMake(130,64,64,64);
-        flowLayout.itemSize = CGSizeMake(500, 300);
+        flowLayout.itemSize = CGSizeMake(420, 270);
 
     }
     [flowLayout setScrollDirection:UICollectionViewScrollDirectionHorizontal];
 
     _episodesTab = [[EpisodesViewController alloc] initWithCollectionViewLayout:flowLayout];
     _episodesTab.episodes = episodes;
-      _episodesTab.onEpisodeSelect = self.onEpisodeSelect;
+    _episodesTab.onEpisodeSelect = self.onEpisodeSelect;
     _episodesTab.currentEpisodeId = contentId;
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(hidePlayerControls:)
                                                  name:RCTHidePlayerControls
                                                object:nil];
     if (@available(tvOS 15.0, *)) {
-        _episodesTab.preferredContentSize=CGSizeMake(1920, 350);
+        _episodesTab.preferredContentSize=CGSizeMake(1740, 350);
 
     }else{
-        _episodesTab.preferredContentSize=CGSizeMake(1920, 450);
+        _episodesTab.preferredContentSize=CGSizeMake(1740, 450);
 
 
     }
@@ -2004,12 +2004,31 @@ static int const RCTVideoUnset = -1;
             epsiodesViewController.title = NSLocalizedString(@"Episodes", nil);
 
              if (@available(tvOS 15.0, *)) {
+           
                 _playerViewController.customInfoViewControllers=@[
                     epsiodesViewController
                 ];
+                 bool showSeasonsAction = [[_playerMetaData objectForKey:@"showSeasonsAction"] boolValue];
+
+                 if(showSeasonsAction){
+                     UIImage *lists = [UIImage systemImageNamed:@"line.3.horizontal"];
+
+                     UIAction *skipAction =  [UIAction actionWithTitle:NSLocalizedString(@"Seasons", nil)
+                                                                 image:nil identifier:nil handler:^(UIAction* action){
+                         if(self.onSeasonsSelect) {
+                             [[NSNotificationCenter defaultCenter] postNotificationName:RCTHidePlayerControls
+                                                                                 object:nil
+                                                                               userInfo:nil];
+                             self.onSeasonsSelect(@{@"target": self.reactTag});
+                         }
+                     }];
+                     _playerViewController.infoViewActions = [_playerViewController.infoViewActions arrayByAddingObject:skipAction ];
+
+                 }
+
             } else if(@available(tvOS 13.0, *)){
 
-                UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(135, 40, 200, 40)];
+                UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(85, 40, 200, 40)];
                 label.text =NSLocalizedString(@"Episodes", nil);
                 label.textColor = [UIColor whiteColor];
 
@@ -2018,7 +2037,8 @@ static int const RCTVideoUnset = -1;
 
                 _playerViewController.customOverlayViewController = epsiodesViewController;
                 [_playerViewController.customOverlayViewController.view addSubview:label];
-            }
+           
+             }
         }
 
         if (@available(tvOS 13.0, *)) {

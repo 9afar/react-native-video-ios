@@ -929,6 +929,9 @@ static int const RCTVideoUnset = -1;
         }
 
         if (self.onVideoLoad && _videoLoadStarted) {
+            if (_maxResolution) {
+                [self setMaxResolution:_maxResolution];
+            }
           self.onVideoLoad(@{@"duration": [NSNumber numberWithFloat:duration],
                              @"currentTime": [NSNumber numberWithFloat:CMTimeGetSeconds(_playerItem.currentTime)],
                              @"canPlayReverse": [NSNumber numberWithBool:_playerItem.canPlayReverse],
@@ -1272,12 +1275,9 @@ static int const RCTVideoUnset = -1;
 
 - (void)setMaxResolution:(NSDictionary *)maxResolution
 {
+    _maxResolution = maxResolution;
     NSNumber *width = maxResolution[@"width"];
     NSNumber *height = maxResolution[@"height"];
-    _maxResolution = @{
-        @"width": width,
-        @"height": height,
-    };
     
     if (@available(tvOS 11.0, *)) {
         [self->_playerItem setPreferredMaximumResolution:CGSizeMake(width.floatValue, height.floatValue)];

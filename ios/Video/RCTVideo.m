@@ -94,6 +94,7 @@ static int const RCTVideoUnset = -1;
   float _volume;
   float _rate;
   float _maxBitRate;
+  NSDictionary * _maxResolution;
 
   BOOL _automaticallyWaitsToMinimizeStalling;
   BOOL _muted;
@@ -1273,6 +1274,10 @@ static int const RCTVideoUnset = -1;
 {
     NSNumber *width = maxResolution[@"width"];
     NSNumber *height = maxResolution[@"height"];
+    _maxResolution = @{
+        @"width": width,
+        @"height": height,
+    };
     
     if (@available(tvOS 11.0, *)) {
         [self->_playerItem setPreferredMaximumResolution:CGSizeMake(width.floatValue, height.floatValue)];
@@ -1888,6 +1893,9 @@ static int const RCTVideoUnset = -1;
                         };
                         self.onResolutionSelect(args);
                     }];
+                    if (itemValue.floatValue == [[_maxResolution valueForKey:@"height"] floatValue]) {
+                        [itemAction setState:UIMenuElementStateOn];
+                    }
                     [subMenuItems addObject:itemAction];
                 }
                 

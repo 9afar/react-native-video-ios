@@ -50,6 +50,7 @@
 @property (nonatomic, copy) RCTDirectEventBlock onPressSportStats;
 @property (nonatomic, copy) RCTDirectEventBlock onPressNoAds;
 @property (nonatomic, copy) RCTDirectEventBlock onEpisodeSelect;
+@property (nonatomic, copy) RCTDirectEventBlock onEpisodesTabAppear;
 
 typedef NS_ENUM(NSInteger, RCTVideoError) {
     RCTVideoErrorFromJSPart,

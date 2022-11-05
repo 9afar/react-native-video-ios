@@ -265,6 +265,11 @@ export default class Video extends Component {
       this.props.onSeasonsSelect();
     }
   }
+  _onEpisodesTabAppear = (event) => {
+    if (this.props.onEpisodesTabAppear) {
+      this.props.onEpisodesTabAppear();
+    }
+  }
   _onMediaSelectionChange = (event) => {
     if (this.props.onMediaSelectionChange) {
       this.props.onMediaSelectionChange(event.nativeEvent);
@@ -380,6 +385,7 @@ export default class Video extends Component {
       onRestoreUserInterfaceForPictureInPictureStop: this._onRestoreUserInterfaceForPictureInPictureStop,
       onSkipIntro : this._onSkipIntro,
       onSeasonsSelect : this._onSeasonsSelect,
+      onEpisodesTabAppear : this._onEpisodesTabAppear,
       onMediaSelectionChange : this._onMediaSelectionChange,
       onAdEvent: this._onAdEvent,
       onPressHdToggle: this._onPressHdToggle,

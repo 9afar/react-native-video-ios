@@ -11,6 +11,7 @@
 #import "TVUIKit/TVUIKit.h"
 
 static NSString *const RCTSetPendingSeekTimeNotification = @"RCTSetPendingSeekTimeNotification";
+static NSString *const RCTEpisodeTabAppear = @"RCTEpisodeTabAppear";
 static NSString *const RCTHidePlayerControls = @"RCTHidePlayerControls";
 
 @interface CustomAdapter : YBAVPlayerAdapter
@@ -670,7 +671,10 @@ static int const RCTVideoUnset = -1;
   _shahidYouboraOptions = youboraOptions;
 }
 - (void)setPlayerMetaData:(NSDictionary *)playerMetaData {
-    _playerMetaData = playerMetaData;
+    if(_playerMetaData != playerMetaData){
+        _playerMetaData = playerMetaData;
+       [self setPlayerUI];
+    }
 }
 - (void)setAdSegments:(NSArray *)segments{
     if(segments && segments.count > 0){
@@ -1689,6 +1693,15 @@ static int const RCTVideoUnset = -1;
     }
     return adBreaksCMTime;
 }
+-(void) onEpisodesTabAppear:(NSNotification*)notification
+{
+    if(self.onEpisodesTabAppear){
+        self.onEpisodesTabAppear(@{
+            @"target": self.reactTag
+        });
+    }
+
+}
 -(void) hidePlayerControls:(NSNotification*)notification
 {
     [_playerViewController dismissViewControllerAnimated:true completion:^{
@@ -1720,6 +1733,11 @@ static int const RCTVideoUnset = -1;
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(hidePlayerControls:)
                                                  name:RCTHidePlayerControls
+                                               object:nil];
+
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(onEpisodesTabAppear:)
+                                                 name:RCTEpisodeTabAppear
                                                object:nil];
     if (@available(tvOS 15.0, *)) {
         _episodesTab.preferredContentSize=CGSizeMake(1740, 350);
@@ -2004,7 +2022,7 @@ static int const RCTVideoUnset = -1;
             epsiodesViewController.title = NSLocalizedString(@"Episodes", nil);
 
              if (@available(tvOS 15.0, *)) {
-           
+
                 _playerViewController.customInfoViewControllers=@[
                     epsiodesViewController
                 ];
@@ -2037,7 +2055,7 @@ static int const RCTVideoUnset = -1;
 
                 _playerViewController.customOverlayViewController = epsiodesViewController;
                 [_playerViewController.customOverlayViewController.view addSubview:label];
-           
+
              }
         }
 

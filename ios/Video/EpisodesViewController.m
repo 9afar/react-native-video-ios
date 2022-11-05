@@ -8,6 +8,7 @@
 #import "EpisodesViewController.h"
 #import "TVUIKit/TVUIKit.h"
 static NSString *const RCTHidePlayerControls = @"RCTHidePlayerControls";
+static NSString *const RCTEpisodeTabAppear = @"RCTEpisodeTabAppear";
 
 @interface EpisodesViewController(){
     NSDictionary *episode;
@@ -27,6 +28,10 @@ int _NumberOfAppear = 0;
 }
 
 - (void)viewWillAppear:(BOOL)animated{
+    [[NSNotificationCenter defaultCenter] postNotificationName:RCTEpisodeTabAppear
+                                                                object:nil
+                                                              userInfo:nil];
+
     [self.collectionView reloadData];
 }
 
@@ -38,12 +43,36 @@ int _NumberOfAppear = 0;
 
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
-    return self.episodes.count;
+    return self.episodes.count > 0 ? self.episodes.count : 8 ;
 }
 
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     UICollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:_reuseIdentifier forIndexPath:indexPath];
+    if(self.episodes.count ==0){
+        TVPosterView *posterView =[[TVPosterView alloc] init];
+        posterView.frame = CGRectMake(0 , 0 , 380 , 213);
+        posterView.imageView.layer.cornerRadius = 50;
 
+        UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+        UIVisualEffectView *blurredEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+        blurredEffectView.frame =posterView.bounds;
+        blurredEffectView.layer.cornerRadius = 50;
+
+        UIActivityIndicatorView *spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+        spinner.color = [UIColor grayColor];
+
+           spinner.frame = CGRectMake(0, 0, 24, 24);
+           [spinner startAnimating];
+
+
+        [posterView.imageView.overlayContentView insertSubview:blurredEffectView atIndex:0];
+        spinner.center = posterView.center;
+        [posterView.imageView.overlayContentView insertSubview:spinner atIndex:1];
+        [cell.contentView addSubview:posterView];
+
+        return cell;
+
+    }
     NSDictionary *episode = [self.episodes objectAtIndex:indexPath.row];
     self->episode = episode;
     self->counter = 0;
@@ -108,18 +137,16 @@ int _NumberOfAppear = 0;
 
         } else {
 
-            UIImage *elipses = [UIImage systemImageNamed:@"ellipsis.circle"];
-            posterView.image = elipses;
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),^{
+                NSURL *url = [NSURL URLWithString:[episode objectForKey:@"thumb"]];
+                NSData *data = [NSData dataWithContentsOfURL:url];
+                UIImage *image = [[UIImage alloc ] initWithData: data];
+                dispatch_sync(dispatch_get_main_queue(), ^{
+                    posterView.image = image;
 
-            UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleLight];
-            UIVisualEffectView *blurredEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-            blurredEffectView.frame = posterView.bounds;
-            [posterView.imageView.overlayContentView insertSubview:blurredEffectView atIndex:0];
+                });
+            });
 
-
-            UIImageView *imageView =[[UIImageView alloc] initWithImage:elipses];
-            imageView.frame = CGRectMake(125, 50, 80, 80);
-            [posterView.imageView.overlayContentView insertSubview:imageView atIndex:1];
 
         }
 

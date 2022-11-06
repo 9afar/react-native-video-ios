@@ -12,6 +12,8 @@ static NSString *const RCTEpisodeTabAppear = @"RCTEpisodeTabAppear";
 
 @interface EpisodesViewController(){
     NSDictionary *episode;
+    NSArray *_episodes;
+
     int counter;
 }
 @end
@@ -19,7 +21,6 @@ static NSString *const RCTEpisodeTabAppear = @"RCTEpisodeTabAppear";
 @implementation EpisodesViewController
 
 NSString * _reuseIdentifier = @"Cell";
-int _NumberOfAppear = 0;
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.clearsSelectionOnViewWillAppear = YES;
@@ -36,19 +37,22 @@ int _NumberOfAppear = 0;
 }
 
 #pragma mark <UICollectionViewDataSource>
-
+- (void) setEpisodes:(NSArray *)episodes {
+     _episodes = episodes;
+    [self.collectionView reloadData];
+}
 - (NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView {
     return 1;
 }
 
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
-    return self.episodes.count > 0 ? self.episodes.count : 8 ;
+    return _episodes.count > 0 ?_episodes.count : 8 ;
 }
 
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     UICollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:_reuseIdentifier forIndexPath:indexPath];
-    if(self.episodes.count ==0){
+    if(_episodes.count ==0 ){
         TVPosterView *posterView =[[TVPosterView alloc] init];
         posterView.frame = CGRectMake(0 , 0 , 380 , 213);
         posterView.imageView.layer.cornerRadius = 50;
@@ -73,7 +77,7 @@ int _NumberOfAppear = 0;
         return cell;
 
     }
-    NSDictionary *episode = [self.episodes objectAtIndex:indexPath.row];
+    NSDictionary *episode = [_episodes objectAtIndex:indexPath.row];
     self->episode = episode;
     self->counter = 0;
     if(@available(tvOS 13.0, *)){
@@ -150,9 +154,7 @@ int _NumberOfAppear = 0;
 
         }
 
-        for (UIView
-
-             *view in cell.contentView.subviews) {
+        for (UIView *view in cell.contentView.subviews) {
             [view removeFromSuperview];
         }
         [cell.contentView addSubview:posterView];
@@ -164,9 +166,9 @@ int _NumberOfAppear = 0;
 - (NSIndexPath *)indexPathForPreferredFocusedViewInCollectionView:(UICollectionView *)collectionView{
     @try{
         int currentEpisodeIndex = 0;
-        int i, count = (int)[self.episodes count];
+        int i, count = (int)[_episodes count];
         for(i = 0; i < count; i++){
-            if([self.episodes[i] objectForKey:@"id"] == self.currentEpisodeId){
+            if([_episodes[i] objectForKey:@"id"] == self.currentEpisodeId){
                 currentEpisodeIndex = i;
             }
         }
@@ -182,18 +184,15 @@ int _NumberOfAppear = 0;
 
     NSString *episodeId =@"";
 
-    int i, count = (int)[self.episodes count];
+    int i, count = (int)[_episodes count];
+    if(count == 0 ){
+        return;
+    }
     for(i = 0; i < count; i++){
         if(i ==  indexPath.row){
-            episodeId = [self.episodes[i] objectForKey:@"id"];
+            episodeId = [_episodes[i] objectForKey:@"id"];
         }
     }
-    //    if(episodeId == self.currentEpisodeId){
-    //        [[NSNotificationCenter defaultCenter] postNotificationName:RCTHidePlayerControls
-    //                                                            object:nil
-    //                                                          userInfo:nil];
-    //        return;
-    //    }
 
     if(self.onEpisodeSelect){
 

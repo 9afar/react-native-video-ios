@@ -13,8 +13,9 @@
 
 
 @interface EpisodesViewController : UICollectionViewController <UICollectionViewDataSource , UICollectionViewDelegate>
-@property (nonatomic, copy) NSArray *episodes;
 @property (nonatomic, copy) NSString *currentEpisodeId;
 @property (nonatomic, copy) RCTVideoPlayerViewController *playerViewController;
 @property (nonatomic, copy) RCTDirectEventBlock onEpisodeSelect;
+- (void) setEpisodes :(NSArray *)episodes;
+
 @end

@@ -94,6 +94,7 @@ static int const RCTVideoUnset = -1;
   float _volume;
   float _rate;
   float _maxBitRate;
+  NSDictionary * _maxResolution;
 
   BOOL _automaticallyWaitsToMinimizeStalling;
   BOOL _muted;
@@ -928,6 +929,9 @@ static int const RCTVideoUnset = -1;
         }
 
         if (self.onVideoLoad && _videoLoadStarted) {
+            if (_maxResolution) {
+                [self setMaxResolution:_maxResolution];
+            }
           self.onVideoLoad(@{@"duration": [NSNumber numberWithFloat:duration],
                              @"currentTime": [NSNumber numberWithFloat:CMTimeGetSeconds(_playerItem.currentTime)],
                              @"canPlayReverse": [NSNumber numberWithBool:_playerItem.canPlayReverse],
@@ -1271,6 +1275,7 @@ static int const RCTVideoUnset = -1;
 
 - (void)setMaxResolution:(NSDictionary *)maxResolution
 {
+    _maxResolution = maxResolution;
     NSNumber *width = maxResolution[@"width"];
     NSNumber *height = maxResolution[@"height"];
     
@@ -1888,6 +1893,9 @@ static int const RCTVideoUnset = -1;
                         };
                         self.onResolutionSelect(args);
                     }];
+                    if (itemValue.floatValue == [[_maxResolution valueForKey:@"height"] floatValue]) {
+                        [itemAction setState:UIMenuElementStateOn];
+                    }
                     [subMenuItems addObject:itemAction];
                 }
                 

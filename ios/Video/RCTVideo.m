@@ -1716,12 +1716,13 @@ static int const RCTVideoUnset = -1;
     if(!_episodesTab){
         UICollectionViewFlowLayout *flowLayout = [[UICollectionViewFlowLayout alloc] init];
         flowLayout.minimumInteritemSpacing = 0;
-        flowLayout.minimumLineSpacing = -25;
-        if (@available(tvOS 15.0, *)) {
+         if (@available(tvOS 15.0, *)) {
+            flowLayout.minimumLineSpacing = -25;
             flowLayout.sectionInset = UIEdgeInsetsMake(-30,64,0,64);
             flowLayout.itemSize = CGSizeMake(420, 270);
 
         }else{
+            flowLayout.minimumLineSpacing = 0;
             flowLayout.sectionInset = UIEdgeInsetsMake(130,64,64,64);
             flowLayout.itemSize = CGSizeMake(420, 270);
 
@@ -2022,46 +2023,92 @@ static int const RCTVideoUnset = -1;
         NSDictionary *episodes = [_playerMetaData objectForKey:@"episodesCards"];
         if(episodes && ![[NSString stringWithFormat:@"%@" ,episodes] isEqual:@"<null>"]){
 
-            EpisodesViewController *epsiodesViewController = [self prepareEpsiodesViewController];
-            epsiodesViewController.title = [_playerMetaData objectForKey:@"episodeInfoTitle"];
+            if([episodes isKindOfClass:[NSString class]]){
+                UIViewController *errorViewController =[[UIViewController alloc] init];
 
-             if (@available(tvOS 15.0, *)) {
+                if (@available(tvOS 15.0, *)) {
+                    errorViewController.preferredContentSize=CGSizeMake(1740, 350);
 
-                _playerViewController.customInfoViewControllers=@[
-                    epsiodesViewController
-                ];
-                 bool showSeasonsAction = [[_playerMetaData objectForKey:@"showSeasonsAction"] boolValue];
+                }else{
+                    errorViewController.preferredContentSize=CGSizeMake(1740, 450);
+                }
 
-                 if(showSeasonsAction){
+                errorViewController.preferredContentSize = CGSizeMake(1740, 200);
+                UIView *errorView = [[UIView alloc] init];
+                errorView.frame = CGRectMake(0 , 0 , 1740, 200);
 
-                     UIAction *skipAction =  [UIAction actionWithTitle:NSLocalizedString(@"Seasons", nil)
-                                                                 image:nil identifier:nil handler:^(UIAction* action){
-                         if(self.onSeasonsSelect) {
-                             [[NSNotificationCenter defaultCenter] postNotificationName:RCTHidePlayerControls
-                                                                                 object:nil
-                                                                               userInfo:nil];
-                             self.onSeasonsSelect(@{@"target": self.reactTag});
-                         }
-                     }];
-                     _playerViewController.infoViewActions = [_playerViewController.infoViewActions arrayByAddingObject:skipAction ];
-
-                 }
-
-            } else if(@available(tvOS 13.0, *)){
-
-                UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(85, 40, 200, 40)];
-                label.text =[_playerMetaData objectForKey:@"episodeInfoTitle"];
+                UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 1000, 40)];
+                label.text = episodes;
                 label.textColor = [UIColor whiteColor];
-
+                label.center =errorView.center;
                 label.layer.shadowColor = [label.textColor CGColor];
                 label.layer.shadowOffset = CGSizeMake(0.0, 0.0);
 
-                _playerViewController.customOverlayViewController = epsiodesViewController;
-                [_playerViewController.customOverlayViewController.view addSubview:label];
+                 errorViewController.title = [_playerMetaData objectForKey:@"episodeInfoTitle"];
 
-             }
+                if (@available(tvOS 15.0, *)) {
+
+                    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+                    UIVisualEffectView *blurredEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+                    blurredEffectView.frame =errorView.bounds;
+                    blurredEffectView.layer.cornerRadius = 30;
+                    blurredEffectView.clipsToBounds = true;
+
+                    [errorView insertSubview:blurredEffectView atIndex:0];
+                    [errorView insertSubview:label atIndex:1];
+
+                    errorViewController.view = errorView;
+
+                    _playerViewController.customInfoViewControllers=@[errorViewController];
+                }else if(@available(tvOS 13.0, *)){
+                    for (UIView *view in _playerViewController.customOverlayViewController.view.subviews) {
+                        [view removeFromSuperview];
+                    }
+                    label.center =_playerViewController.customOverlayViewController.view.center;
+                    [_playerViewController.customOverlayViewController.view addSubview:label];
+                    _playerViewController.customOverlayViewController = errorViewController;
+
+                }
+            }else{
+                EpisodesViewController *epsiodesViewController = [self prepareEpsiodesViewController];
+                epsiodesViewController.title = [_playerMetaData objectForKey:@"episodeInfoTitle"];
+
+                if (@available(tvOS 15.0, *)) {
+
+                    _playerViewController.customInfoViewControllers=@[
+                        epsiodesViewController
+                    ];
+                    bool showSeasonsAction = [[_playerMetaData objectForKey:@"showSeasonsAction"] boolValue];
+
+                    if(showSeasonsAction){
+
+                        UIAction *skipAction =  [UIAction actionWithTitle:NSLocalizedString(@"Seasons", nil)
+                                                                    image:nil identifier:nil handler:^(UIAction* action){
+                            if(self.onSeasonsSelect) {
+                                [[NSNotificationCenter defaultCenter] postNotificationName:RCTHidePlayerControls
+                                                                                    object:nil
+                                                                                  userInfo:nil];
+                                self.onSeasonsSelect(@{@"target": self.reactTag});
+                            }
+                        }];
+                        _playerViewController.infoViewActions = [_playerViewController.infoViewActions arrayByAddingObject:skipAction ];
+
+                    }
+
+                } else if(@available(tvOS 13.0, *)){
+
+                    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(85, 40, 200, 40)];
+                    label.text =[_playerMetaData objectForKey:@"episodeInfoTitle"];
+                    label.textColor = [UIColor whiteColor];
+
+                    label.layer.shadowColor = [label.textColor CGColor];
+                    label.layer.shadowOffset = CGSizeMake(0.0, 0.0);
+                    _playerViewController.customOverlayViewController = epsiodesViewController;
+                    [_playerViewController.customOverlayViewController.view addSubview:label];
+
+                }
+            }
         }
-
         if (@available(tvOS 13.0, *)) {
             [[NSNotificationCenter defaultCenter] addObserver:self
                                                      selector:@selector(handleMediaSelectionChange:)

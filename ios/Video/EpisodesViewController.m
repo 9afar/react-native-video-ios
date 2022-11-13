@@ -117,25 +117,7 @@ NSString * _reuseIdentifier = @"Cell";
                 UIImage *image = [[UIImage alloc ] initWithData: data];
                 dispatch_sync(dispatch_get_main_queue(), ^{
                     posterView.image = image;
-                    
-                    if(![[episode objectForKey:@"catalogTag"] isEqual:@""]){
-                        UIImageView *ImageView = [[UIImageView alloc] init];
-                        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
-                                       ^{
-                            NSURL *overlayUrl = [NSURL URLWithString:[self->episode objectForKey:@"catalogTag"]];
-                            NSData *overlayData = [NSData dataWithContentsOfURL:overlayUrl];
-                            UIImage *overlayImage = [[UIImage alloc ] initWithData: overlayData];
-
-                            dispatch_sync(dispatch_get_main_queue(), ^{
-                                ImageView.image = overlayImage;
-                                ImageView.frame= CGRectMake(12, 12, overlayImage.size.width * 0.3, overlayImage.size.height* 0.3);
-                                ImageView.layer.cornerRadius = 5;
-                                ImageView.clipsToBounds = YES;
-                            });
-                        });
-                        [posterView.imageView.overlayContentView addSubview:ImageView];
-                    }
-                    
+                
                     if([episode objectForKey:@"progress"] && [[episode objectForKey:@"progress"] floatValue] > 0){
                         UIProgressView *progressView = [[UIProgressView alloc]  initWithFrame:CGRectMake(10, 165, 320 , 10)];
                         progressView.progress =[[episode objectForKey:@"progress"] floatValue];
@@ -161,7 +143,23 @@ NSString * _reuseIdentifier = @"Cell";
                 });
                 
             });
-            
+             if(![[episode objectForKey:@"catalogTag"] isEqual:@""]){
+                 UIImageView *ImageView = [[UIImageView alloc] init];
+                 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+                                ^{
+                     NSURL *overlayUrl = [NSURL URLWithString:[self->episode objectForKey:@"catalogTag"]];
+                     NSData *overlayData = [NSData dataWithContentsOfURL:overlayUrl];
+                     UIImage *overlayImage = [[UIImage alloc ] initWithData: overlayData];
+
+                     dispatch_sync(dispatch_get_main_queue(), ^{
+                         ImageView.image = overlayImage;
+                         ImageView.frame= CGRectMake(12, 12, overlayImage.size.width * 0.3, overlayImage.size.height* 0.3);
+                         ImageView.layer.cornerRadius = 5;
+                         ImageView.clipsToBounds = YES;
+                     });
+                 });
+                 [posterView.imageView.overlayContentView addSubview:ImageView];
+             }
             
             
         } else {

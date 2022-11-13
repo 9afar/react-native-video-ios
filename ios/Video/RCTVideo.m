@@ -125,7 +125,9 @@ static int const RCTVideoUnset = -1;
   NSDictionary *_playerMetaData;
   NSArray *_adSegments;
   float _paddingBottomTrack;
-
+  NSArray *_customInfoViewControllers;
+  UIViewController *_customOverlayViewController;
+    
   NSMutableArray *interstitialWatched;
   NSMutableArray *interstitialCompleted;
   AVInterstitialTimeRange *_selectedInterstitialCW;
@@ -687,6 +689,29 @@ static int const RCTVideoUnset = -1;
     }
     _adSegments = segments;
 }
+- (void)setSmallPlayer:(BOOL)isSmallPlayer{
+    if(isSmallPlayer){
+        if (@available(tvOS 15.0, *)) {
+            _customInfoViewControllers =_playerViewController.customInfoViewControllers;
+            _playerViewController.customInfoViewControllers = @[];
+        }else if(@available(tvOS 13.0, *)){
+            _customOverlayViewController =_playerViewController.customOverlayViewController;
+            _playerViewController.customOverlayViewController =nil;
+        }
+    }else{
+        if (@available(tvOS 15.0, *)) {
+            if(_customInfoViewControllers){
+                _playerViewController.customInfoViewControllers =_customInfoViewControllers;
+                _customInfoViewControllers= nil;
+            }
+        }else if(@available(tvOS 13.0, *)){
+            if(_customOverlayViewController){
+                _playerViewController.customOverlayViewController = _customOverlayViewController;
+                _customOverlayViewController= nil;
+            }
+         }
+     }
+ }
 -(void) setPendingSeekTime:(NSNotification*)notification
 {
     NSDictionary* userInfo = notification.userInfo;

@@ -69,6 +69,7 @@ static int const RCTVideoUnset = -1;
   NSURL *_videoURL;
   BOOL _requestingCertificate;
   BOOL _requestingCertificateErrored;
+  NSDictionary* _resolutionMenu;
 
   /* DRM */
   NSDictionary *_drm;
@@ -93,6 +94,7 @@ static int const RCTVideoUnset = -1;
   float _volume;
   float _rate;
   float _maxBitRate;
+  NSDictionary * _maxResolution;
 
   BOOL _automaticallyWaitsToMinimizeStalling;
   BOOL _muted;
@@ -928,6 +930,9 @@ static int const RCTVideoUnset = -1;
         }
 
         if (self.onVideoLoad && _videoLoadStarted) {
+            if (_maxResolution) {
+                [self setMaxResolution:_maxResolution];
+            }
           self.onVideoLoad(@{@"duration": [NSNumber numberWithFloat:duration],
                              @"currentTime": [NSNumber numberWithFloat:CMTimeGetSeconds(_playerItem.currentTime)],
                              @"canPlayReverse": [NSNumber numberWithBool:_playerItem.canPlayReverse],
@@ -1267,6 +1272,26 @@ static int const RCTVideoUnset = -1;
     _pendingSeek = true;
     _pendingSeekTime = [seekTime floatValue];
   }
+}
+
+- (void)setMaxResolution:(NSDictionary *)maxResolution
+{
+    _maxResolution = maxResolution;
+    NSNumber *width = maxResolution[@"width"];
+    NSNumber *height = maxResolution[@"height"];
+    
+    if (@available(tvOS 11.0, *)) {
+        [self->_playerItem setPreferredMaximumResolution:CGSizeMake(width.floatValue, height.floatValue)];
+        DebugLog(@"Setting max resolution to: %f by %f", width.floatValue, height.floatValue);
+    } else {
+        DebugLog(@"can't perform: Setting max resolution to: %f by %f, tvos < 11", width.floatValue, height.floatValue);
+    }
+}
+
+- (void)setResolutionsMenu:(NSDictionary *)subMenu
+{
+    _resolutionMenu = subMenu;
+    // NOOP, we update ui once all meta data are ready, see: setPlayerUI method
 }
 
 - (void)setRate:(float)rate
@@ -1848,6 +1873,44 @@ static int const RCTVideoUnset = -1;
 
 
             self->_playerViewController.transportBarCustomMenuItems=customMenuItems;
+
+            // Adding Resolution Selection menu
+            if (@available(tvOS 15.0, *)) {
+                UIImage *resolutionSwitchIcon = [UIImage systemImageNamed:@"gear.circle"];
+                NSString * title = [_resolutionMenu valueForKey:@"title"];
+                NSArray * items = [_resolutionMenu valueForKey:@"items"];
+                
+                NSMutableArray * subMenuItems = [[NSMutableArray alloc] init];
+                
+                for (NSDictionary * item in items) {
+                    NSString * itemTitle = [item valueForKey:@"title"];
+                    NSString * itemValue = [item valueForKey:@"value"];
+
+                    UIAction * itemAction = [UIAction actionWithTitle:itemTitle image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                        DebugLog(@"Pressing Resolution Selection %@", itemTitle);
+                        NSDictionary * args =  @{
+                            @"type": @"onResolutionSelected",
+                            @"value": itemValue,
+                        };
+                        self.onResolutionSelect(args);
+                    }];
+                    if (itemValue.floatValue == [[_maxResolution valueForKey:@"height"] floatValue]) {
+                        [itemAction setState:UIMenuElementStateOn];
+                    }
+                    [subMenuItems addObject:itemAction];
+                }
+                
+                UIMenu * uiSubMenu = [UIMenu menuWithTitle:title image:resolutionSwitchIcon identifier:nil options:UIMenuOptionsSingleSelection children:subMenuItems];
+                NSArray * arr = [_playerViewController transportBarCustomMenuItems];
+                if(arr == nil ){
+                    arr = @[];
+                }
+                NSArray<__kindof UIMenuElement *> * menuItems = [arr arrayByAddingObject:uiSubMenu];
+                
+                self->_playerViewController.transportBarCustomMenuItems = menuItems;
+            } else {
+                // custom sub menus are not supported before tvOS15
+            }
         }
         NSString *title = [_playerMetaData objectForKey:@"title"];
         NSString *type = [_playerMetaData objectForKey:@"type"];

@@ -421,7 +421,19 @@ Video.propTypes = {
     PropTypes.number,
     PropTypes.object
   ]),
+  maxResolution: PropTypes.shape({
+    width: PropTypes.number,
+    height: PropTypes.number,
+  }),
+  resolutionsMenu: PropTypes.shape({
+    title: PropTypes.string,
+    items: PropTypes.arrayOf(PropTypes.shape({
+      title: PropTypes.string,
+      value: PropTypes.number,
+    }))
+  }),
   fullscreen: PropTypes.bool,
+  onResolutionSelect: PropTypes.func,
   onVideoLoadStart: PropTypes.func,
   onVideoLoad: PropTypes.func,
   onVideoBuffer: PropTypes.func,

@@ -243,7 +243,8 @@ static int const RCTVideoUnset = -1;
                         }
                     }];
                     self->_playerViewController.contextualActions=@[skipAction];
-                } else {
+                    [self->_playerViewController.view becomeFirstResponder];
+                 } else {
                     UIButton *button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
                     button.frame =  CGRectMake(1600, 990, 250, 70.0);
                     [button setTitle:NSLocalizedString(@"SkipIntro", nil) forState:UIControlStateNormal];
@@ -1960,7 +1961,7 @@ static int const RCTVideoUnset = -1;
       UIViewController *viewController = [self reactViewController];
       [viewController addChildViewController:_playerViewController];
       [self addSubview:_playerViewController.view];
-            [self setPlayerUI];
+      [self setPlayerUI];
     }
 
     [_playerViewController addObserver:self forKeyPath:readyForDisplayKeyPath options:NSKeyValueObservingOptionNew context:nil];

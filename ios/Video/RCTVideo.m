@@ -2169,9 +2169,10 @@ static int const RCTVideoUnset = -1;
                     bool showSeasonsAction = [[_playerMetaData objectForKey:@"showSeasonsAction"] boolValue];
 
                     if(showSeasonsAction){
+                        UIImage *seasonIcon = [UIImage systemImageNamed:@"list.dash"];
 
-                        UIAction *skipAction =  [UIAction actionWithTitle:NSLocalizedString(@"Seasons", nil)
-                                                                    image:nil identifier:nil handler:^(UIAction* action){
+                        UIAction *seasonAction =  [UIAction actionWithTitle:NSLocalizedString(@"Seasons", nil)
+                                                                    image:seasonIcon identifier:nil handler:^(UIAction* action){
                             if(self.onSeasonsSelect) {
                                 [[NSNotificationCenter defaultCenter] postNotificationName:RCTHidePlayerControls
                                                                                     object:nil
@@ -2179,7 +2180,7 @@ static int const RCTVideoUnset = -1;
                                 self.onSeasonsSelect(@{@"target": self.reactTag});
                             }
                         }];
-                        _playerViewController.infoViewActions = [_playerViewController.infoViewActions arrayByAddingObject:skipAction ];
+                        _playerViewController.infoViewActions = [_playerViewController.infoViewActions arrayByAddingObject:seasonAction ];
 
                     }
 

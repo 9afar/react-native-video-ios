@@ -20,6 +20,7 @@
 @interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate, AVPictureInPictureControllerDelegate, AVAssetResourceLoaderDelegate,AVPlayerViewControllerDelegate>
 #endif
 
+@property (nonatomic, copy) RCTDirectEventBlock onResolutionSelect;
 @property (nonatomic, copy) RCTDirectEventBlock onVideoLoadStart;
 @property (nonatomic, copy) RCTDirectEventBlock onVideoLoad;
 @property (nonatomic, copy) RCTDirectEventBlock onVideoBuffer;

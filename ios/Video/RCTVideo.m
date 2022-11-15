@@ -1875,7 +1875,7 @@ static int const RCTVideoUnset = -1;
 
             // Adding Resolution Selection menu
             if (@available(tvOS 15.0, *)) {
-                UIImage *resolutionSwitchIcon = [UIImage systemImageNamed:@"gear.circle"];
+                UIImage *resolutionSwitchIcon = [UIImage imageNamed:@"bitrate"];
                 NSString * title = [_resolutionMenu valueForKey:@"title"];
                 NSArray * items = [_resolutionMenu valueForKey:@"items"];
                 

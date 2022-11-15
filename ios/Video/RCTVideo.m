@@ -250,10 +250,9 @@ static int const RCTVideoUnset = -1;
                     [self->_playerViewController.view becomeFirstResponder];
                 } else {
                     TVCardView *buttonView = [[TVCardView alloc]  initWithFrame: CGRectMake(1600, 900, 250, 100)];
-                      UILabel *label = [[UILabel alloc] initWithFrame: CGRectMake(10, 25, buttonView.frame.size.width, 0)];
+                      UILabel *label = [[UILabel alloc] initWithFrame: CGRectMake(0, 0, 250, 100)];
 
                     label.text =NSLocalizedString(@"SkipIntro", nil);
-                    [label sizeToFit];
                     [label setNumberOfLines: 0];
                      label.textColor= [UIColor blackColor];
                     label.font = [UIFont fontWithName:@"Helvetica-Bold" size:30];

@@ -159,8 +159,28 @@ NSString * _reuseIdentifier = @"Cell";
                      });
                  });
                  [posterView.imageView.overlayContentView addSubview:ImageView];
+
              }
-            
+             if(![[episode objectForKey:@"tagText"] isEqual:@""]){
+                 
+                 NSString *tagText =  [episode objectForKey:@"tagText"];
+                 NSUInteger characterCount = [tagText length];
+                 
+                 UILabel *label = [[UILabel alloc] initWithFrame:
+                                   CGRectMake((characterCount > 6 ? 160 : 250), 10,
+                                              (characterCount > 6 ? 180 : 80), 25)];
+                 
+                 label.text =tagText;
+                 [label setNumberOfLines: 0];
+                 label.textColor= [UIColor whiteColor];
+                 label.backgroundColor = [UIColor colorWithRed:24/255.0 green:29/255.0 blue:37/255.0 alpha:0.8f];
+                 label.font = [UIFont fontWithName:@"Helvetica-Bold" size:15];
+                 label.layer.cornerRadius = 8;
+                 label.clipsToBounds = true;
+                 label.textAlignment = NSTextAlignmentCenter;
+                 
+                 [posterView.imageView.overlayContentView addSubview:label];
+             }
             
         } else {
             

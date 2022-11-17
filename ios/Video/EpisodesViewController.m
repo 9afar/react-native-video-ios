@@ -13,7 +13,7 @@ static NSString *const RCTEpisodeTabAppear = @"RCTEpisodeTabAppear";
 @interface EpisodesViewController(){
     NSDictionary *episode;
     NSArray *_episodes;
-    
+
     int counter;
 }
 @end
@@ -25,7 +25,7 @@ NSString * _reuseIdentifier = @"Cell";
     [super viewDidLoad];
     self.clearsSelectionOnViewWillAppear = YES;
     [self.collectionView registerClass:[UICollectionViewCell class] forCellWithReuseIdentifier:_reuseIdentifier];
-    
+
 }
 - (void)viewWillAppear:(BOOL)animated{
     if (@available(tvOS 15.0, *) ) {
@@ -37,11 +37,11 @@ NSString * _reuseIdentifier = @"Cell";
     [[NSNotificationCenter defaultCenter] postNotificationName:RCTEpisodeTabAppear
                                                         object:nil
                                                       userInfo:nil];
-    
-  
-    
+
+
+
     [self.collectionView reloadData];
- 
+
 }
 
 #pragma mark <UICollectionViewDataSource>
@@ -66,58 +66,58 @@ NSString * _reuseIdentifier = @"Cell";
             TVPosterView *posterView =[[TVPosterView alloc] init];
             posterView.frame = CGRectMake(0 , 0 , 380 , 213);
             posterView.imageView.layer.cornerRadius = 50;
-            
+
             UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
             UIVisualEffectView *blurredEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
             blurredEffectView.frame =posterView.bounds;
             blurredEffectView.layer.cornerRadius = 50;
-            
+
             UIActivityIndicatorView *spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
             spinner.color = [UIColor grayColor];
-            
+
             spinner.frame = CGRectMake(0, 0, 24, 24);
             [spinner startAnimating];
-            
-            
+
+
             [posterView.imageView.overlayContentView insertSubview:blurredEffectView atIndex:0];
             spinner.center = posterView.center;
             [posterView.imageView.overlayContentView insertSubview:spinner atIndex:1];
             [cell.contentView addSubview:posterView];
 
             return cell;
-            
+
         }
-        
+
         NSDictionary *episode = [_episodes objectAtIndex:indexPath.row];
         self->episode = episode;
         self->counter = 0;
-        
+
         //===== TVOS 14 ========
         TVPosterView *posterView =[[TVPosterView alloc] init];
-        
+
         posterView.frame = cell.bounds;
         posterView.imageView.layer.cornerRadius = 50;
-        
+
         UIImage *intialImage  = [UIImage imageNamed:@"emptyBackground.png"];
-        
+
         posterView.frame = CGRectMake(0, 0, 420, 270);
         posterView.image = intialImage;
         posterView.imageView.frame =CGRectMake(0, 0, 420, 236);
-        
+
         posterView.title = [episode objectForKey:@"title"];
-        
+
         if((long) [self getSelectedIndex] != indexPath.row){
             posterView.footerView.titleLabel.textColor = [UIColor grayColor];
         }
          if(![[episode objectForKey:@"id"]  isEqual: @"more"]){
-            
+
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),^{
                 NSURL *url = [NSURL URLWithString:[episode objectForKey:@"thumb"]];
                 NSData *data = [NSData dataWithContentsOfURL:url];
                 UIImage *image = [[UIImage alloc ] initWithData: data];
                 dispatch_sync(dispatch_get_main_queue(), ^{
                     posterView.image = image;
-                
+
                     if([episode objectForKey:@"progress"] && [[episode objectForKey:@"progress"] floatValue] > 0){
                         UIProgressView *progressView = [[UIProgressView alloc]  initWithFrame:CGRectMake(10, 165, 320 , 10)];
                         progressView.progress =[[episode objectForKey:@"progress"] floatValue];
@@ -141,7 +141,7 @@ NSString * _reuseIdentifier = @"Cell";
                         [posterView.imageView.overlayContentView addSubview:progressView];
                     }
                 });
-                
+
             });
              if(![[episode objectForKey:@"catalogTag"] isEqual:@""]){
                  UIImageView *ImageView = [[UIImageView alloc] init];
@@ -162,14 +162,14 @@ NSString * _reuseIdentifier = @"Cell";
 
              }
              if(![[episode objectForKey:@"tagText"] isEqual:@""]){
-                 
+
                  NSString *tagText =  [episode objectForKey:@"tagText"];
                  NSUInteger characterCount = [tagText length];
-                 
+
                  UILabel *label = [[UILabel alloc] initWithFrame:
-                                   CGRectMake((characterCount > 6 ? 160 : 250), 10,
-                                              (characterCount > 6 ? 180 : 80), 25)];
-                 
+                                   CGRectMake((characterCount > 8 ? 160 : 250), 10,
+                                              (characterCount > 8 ? 180 : 80), 25)];
+
                  label.text =tagText;
                  [label setNumberOfLines: 0];
                  label.textColor= [UIColor whiteColor];
@@ -178,30 +178,30 @@ NSString * _reuseIdentifier = @"Cell";
                  label.layer.cornerRadius = 8;
                  label.clipsToBounds = true;
                  label.textAlignment = NSTextAlignmentCenter;
-                 
+
                  [posterView.imageView.overlayContentView addSubview:label];
              }
-            
+
         } else {
-            
+
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),^{
                 NSURL *url = [NSURL URLWithString:[episode objectForKey:@"thumb"]];
                 NSData *data = [NSData dataWithContentsOfURL:url];
                 UIImage *image = [[UIImage alloc ] initWithData: data];
                 dispatch_sync(dispatch_get_main_queue(), ^{
                     posterView.image = image;
-                    
+
                 });
             });
-            
-            
+
+
         }
         for (UIView *view in cell.contentView.subviews) {
             [view removeFromSuperview];
         }
         [cell.contentView addSubview:posterView];
     }
-    
+
     return cell;
 }
 - (int) getSelectedIndex {
@@ -219,7 +219,7 @@ NSString * _reuseIdentifier = @"Cell";
     @try{
         NSIndexPath *indexPath =  [NSIndexPath indexPathForRow:[self getSelectedIndex] inSection:0];
         [NSThread sleepForTimeInterval:0.5];
-      
+
         return indexPath;
     }
     @catch(id anException){
@@ -228,9 +228,9 @@ NSString * _reuseIdentifier = @"Cell";
     }
 }
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
-    
+
     NSString *episodeId =@"";
-    
+
     int i, count = (int)[_episodes count];
     if(count == 0 ){
         return;
@@ -240,9 +240,9 @@ NSString * _reuseIdentifier = @"Cell";
             episodeId = [_episodes[i] objectForKey:@"id"];
         }
     }
-    
+
     if(self.onEpisodeSelect){
-        
+
         [[NSNotificationCenter defaultCenter] postNotificationName:RCTHidePlayerControls
                                                             object:nil
                                                           userInfo:nil];
@@ -253,7 +253,7 @@ NSString * _reuseIdentifier = @"Cell";
     }
 }
 - (BOOL)collectionView:(UICollectionView *)collectionView shouldUpdateFocusInContext:(UICollectionViewFocusUpdateContext *)context API_AVAILABLE(ios(9.0)){
-    
+
     if( _episodes.count > 0){
 
         return  true;
@@ -261,5 +261,5 @@ NSString * _reuseIdentifier = @"Cell";
     return  false;
 }
 
- 
+
 @end

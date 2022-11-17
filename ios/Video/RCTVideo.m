@@ -239,22 +239,13 @@ static int const RCTVideoUnset = -1;
 
         if (@available(tvOS 13.0, *)) {
             if (toggle) {
-                if (@available(tvOS 15.0, *)) {
-                    UIAction *skipAction =  [UIAction actionWithTitle:NSLocalizedString(@"SkipIntro", nil)
-                                                                image:nil identifier:nil handler:^(UIAction* action){
-                        if(self.onSkipIntro) {
-                            self.onSkipIntro(@{@"target": self.reactTag});
-                        }
-                    }];
-                    self->_playerViewController.contextualActions=@[skipAction];
-                    [self->_playerViewController.view becomeFirstResponder];
-                } else {
                     TVCardView *buttonView = [[TVCardView alloc]  initWithFrame: CGRectMake(1600, 900, 250, 100)];
-                      UILabel *label = [[UILabel alloc] initWithFrame: CGRectMake(0, 0, 250, 100)];
+                    UILabel *label = [[UILabel alloc] initWithFrame: CGRectMake(0, 0, 250, 100)];
 
                     label.text =NSLocalizedString(@"SkipIntro", nil);
                     [label setNumberOfLines: 0];
                      label.textColor= [UIColor blackColor];
+
                     label.font = [UIFont fontWithName:@"Helvetica-Bold" size:30];
                     label.textAlignment = NSTextAlignmentCenter;
                     [buttonView insertSubview:label atIndex:1];
@@ -273,13 +264,8 @@ static int const RCTVideoUnset = -1;
                     viewControllerSkip.modalPresentationStyle=UIModalPresentationOverFullScreen;
                     viewControllerSkip.view.frame=_playerViewController.view.bounds;
                     [_playerViewController presentViewController:viewControllerSkip animated:YES completion:nil];
-                }
             } else {
-                if (@available(tvOS 15.0, *)) {
-                    self->_playerViewController.contextualActions=@[];
-                } else {
-                    [_playerViewController dismissViewControllerAnimated:YES completion:nil];
-                }
+              [_playerViewController dismissViewControllerAnimated:YES completion:nil];
             }
         }
     });

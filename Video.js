@@ -193,6 +193,11 @@ export default class Video extends Component {
       this.props.onPlaybackRateChange(event.nativeEvent);
     }
   };
+   _onEpisodeSelect = (event) => {
+    if (this.props.onEpisodeSelect) {
+      this.props.onEpisodeSelect(event.nativeEvent);
+    }
+  };
 
   _onExternalPlaybackChange = (event) => {
     if (this.props.onExternalPlaybackChange) {
@@ -253,6 +258,16 @@ export default class Video extends Component {
   _onSkipIntro = (event) => {
     if (this.props.onSkipIntro) {
       this.props.onSkipIntro();
+    }
+  }
+  _onSeasonsSelect = (event) => {
+    if (this.props.onSeasonsSelect) {
+      this.props.onSeasonsSelect();
+    }
+  }
+  _onEpisodesTabAppear = (event) => {
+    if (this.props.onEpisodesTabAppear) {
+      this.props.onEpisodesTabAppear();
     }
   }
   _onMediaSelectionChange = (event) => {
@@ -362,12 +377,15 @@ export default class Video extends Component {
       onPlaybackStalled: this._onPlaybackStalled,
       onPlaybackResume: this._onPlaybackResume,
       onPlaybackRateChange: this._onPlaybackRateChange,
+      onEpisodeSelect: this._onEpisodeSelect,
       onAudioFocusChanged: this._onAudioFocusChanged,
       onAudioBecomingNoisy: this._onAudioBecomingNoisy,
       onGetLicense: nativeProps.drm && nativeProps.drm.getLicense && this._onGetLicense,
       onPictureInPictureStatusChanged: this._onPictureInPictureStatusChanged,
       onRestoreUserInterfaceForPictureInPictureStop: this._onRestoreUserInterfaceForPictureInPictureStop,
       onSkipIntro : this._onSkipIntro,
+      onSeasonsSelect : this._onSeasonsSelect,
+      onEpisodesTabAppear : this._onEpisodesTabAppear,
       onMediaSelectionChange : this._onMediaSelectionChange,
       onAdEvent: this._onAdEvent,
       onPressHdToggle: this._onPressHdToggle,

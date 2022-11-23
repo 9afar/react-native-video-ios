@@ -44,11 +44,14 @@
 @property (nonatomic, copy) RCTDirectEventBlock onRestoreUserInterfaceForPictureInPictureStop;
 @property (nonatomic, copy) RCTDirectEventBlock onGetLicense;
 @property (nonatomic, copy) RCTDirectEventBlock onSkipIntro;
+@property (nonatomic, copy) RCTDirectEventBlock onSeasonsSelect;
 @property (nonatomic, copy) RCTDirectEventBlock onMediaSelectionChange;
 @property (nonatomic, copy) RCTDirectEventBlock onAdEvent;
 @property (nonatomic, copy) RCTDirectEventBlock onPressHdToggle;
 @property (nonatomic, copy) RCTDirectEventBlock onPressSportStats;
 @property (nonatomic, copy) RCTDirectEventBlock onPressNoAds;
+@property (nonatomic, copy) RCTDirectEventBlock onEpisodeSelect;
+@property (nonatomic, copy) RCTDirectEventBlock onEpisodesTabAppear;
 
 typedef NS_ENUM(NSInteger, RCTVideoError) {
     RCTVideoErrorFromJSPart,

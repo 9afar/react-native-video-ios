@@ -7,8 +7,12 @@
 #include <AVFoundation/AVFoundation.h>
 #import <YouboraAVPlayerAdapter/YouboraAVPlayerAdapter.h>
 #import <CoreMedia/CoreMedia.h>
+#import "EpisodesViewController.h"
+#import "TVUIKit/TVUIKit.h"
 
 static NSString *const RCTSetPendingSeekTimeNotification = @"RCTSetPendingSeekTimeNotification";
+static NSString *const RCTEpisodeTabAppear = @"RCTEpisodeTabAppear";
+static NSString *const RCTHidePlayerControls = @"RCTHidePlayerControls";
 
 @interface CustomAdapter : YBAVPlayerAdapter
   @property NSDictionary *customArguments;
@@ -77,6 +81,7 @@ static int const RCTVideoUnset = -1;
 
   /* Required to publish events */
   RCTEventDispatcher *_eventDispatcher;
+  EpisodesViewController *_episodesTab;
   BOOL _playbackRateObserverRegistered;
   BOOL _isExternalPlaybackActiveObserverRegistered;
   BOOL _videoLoadStarted;
@@ -122,6 +127,8 @@ static int const RCTVideoUnset = -1;
   NSDictionary *_playerMetaData;
   NSArray *_adSegments;
   float _paddingBottomTrack;
+  NSArray *_customInfoViewControllers;
+  UIViewController *_customOverlayViewController;
 
   NSMutableArray *interstitialWatched;
   NSMutableArray *interstitialCompleted;
@@ -220,12 +227,7 @@ static int const RCTVideoUnset = -1;
              }];
           }
 }
-- (void)skipIntro:(UIButton*)sender
-{
-    if(self.onSkipIntro) {
-        self.onSkipIntro(@{@"target": self.reactTag});
-    }
-}
+
 - (void)playerControlInteraction:(BOOL)toggle{
     dispatch_sync(dispatch_get_main_queue(), ^{
         self->_playerViewController.view.userInteractionEnabled= toggle;
@@ -237,38 +239,43 @@ static int const RCTVideoUnset = -1;
 
         if (@available(tvOS 13.0, *)) {
             if (toggle) {
-                if (@available(tvOS 15.0, *)) {
-                    UIAction *skipAction =  [UIAction actionWithTitle:NSLocalizedString(@"SkipIntro", nil)
-                                                                image:nil identifier:nil handler:^(UIAction* action){
-                        if(self.onSkipIntro) {
-                            self.onSkipIntro(@{@"target": self.reactTag});
-                        }
-                    }];
-                    self->_playerViewController.contextualActions=@[skipAction];
-                    [self->_playerViewController.view becomeFirstResponder];
-                 } else {
-                    UIButton *button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-                    button.frame =  CGRectMake(1600, 990, 250, 70.0);
-                    [button setTitle:NSLocalizedString(@"SkipIntro", nil) forState:UIControlStateNormal];
-                    [button.titleLabel setFont:[UIFont fontWithName:@"Helvetica-Bold" size:30]];
-                    [button addTarget:self action:@selector(skipIntro:) forControlEvents:UIControlEventAllEvents];
-                    [button preferredFocusEnvironments];
+                    TVCardView *buttonView = [[TVCardView alloc]  initWithFrame: CGRectMake(1600, 900, 250, 100)];
+                    UILabel *label = [[UILabel alloc] initWithFrame: CGRectMake(0, 0, 250, 100)];
+
+                    label.text =NSLocalizedString(@"SkipIntro", nil);
+                    [label setNumberOfLines: 0];
+                     label.textColor= [UIColor blackColor];
+
+                    label.font = [UIFont fontWithName:@"Helvetica-Bold" size:30];
+                    label.textAlignment = NSTextAlignmentCenter;
+                    [buttonView insertSubview:label atIndex:1];
+
+
+                    UITapGestureRecognizer *singleTap=[[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(skippingIntro)];
+                    [buttonView addGestureRecognizer:singleTap];
+                    buttonView.userInteractionEnabled = YES;
+
                     UIViewController *viewControllerSkip = [UIViewController alloc];
-                    [viewControllerSkip.view addSubview:button ];
+
+                     [viewControllerSkip.view insertSubview:buttonView atIndex:1];
+
+
+
                     viewControllerSkip.modalPresentationStyle=UIModalPresentationOverFullScreen;
+                    viewControllerSkip.view.frame=_playerViewController.view.bounds;
                     [_playerViewController presentViewController:viewControllerSkip animated:YES completion:nil];
-                }
             } else {
-                if (@available(tvOS 15.0, *)) {
-                    self->_playerViewController.contextualActions=@[];
-                } else {
-                    [_playerViewController dismissViewControllerAnimated:YES completion:nil];
-                }
+              [_playerViewController dismissViewControllerAnimated:YES completion:nil];
             }
         }
     });
 }
+- (void)skippingIntro {
 
+    if(self.onSkipIntro) {
+        self.onSkipIntro(@{@"target": self.reactTag});
+    }
+}
 
 - (RCTVideoPlayerViewController*)createPlayerViewController:(AVPlayer*)player
                                              withPlayerItem:(AVPlayerItem*)playerItem {
@@ -654,7 +661,10 @@ static int const RCTVideoUnset = -1;
   _shahidYouboraOptions = youboraOptions;
 }
 - (void)setPlayerMetaData:(NSDictionary *)playerMetaData {
-    _playerMetaData = playerMetaData;
+    if(_playerMetaData != playerMetaData){
+        _playerMetaData = playerMetaData;
+       [self setPlayerUI];
+    }
 }
 - (void)setAdSegments:(NSArray *)segments{
     if(segments && segments.count > 0){
@@ -667,6 +677,29 @@ static int const RCTVideoUnset = -1;
     }
     _adSegments = segments;
 }
+- (void)setSmallPlayer:(BOOL)isSmallPlayer{
+    if(isSmallPlayer){
+        if (@available(tvOS 15.0, *)) {
+            _customInfoViewControllers =_playerViewController.customInfoViewControllers;
+            _playerViewController.customInfoViewControllers = @[];
+        }else if(@available(tvOS 13.0, *)){
+            _customOverlayViewController =_playerViewController.customOverlayViewController;
+            _playerViewController.customOverlayViewController =nil;
+        }
+    }else{
+        if (@available(tvOS 15.0, *)) {
+            if(_customInfoViewControllers){
+                _playerViewController.customInfoViewControllers =_customInfoViewControllers;
+                _customInfoViewControllers= nil;
+            }
+        }else if(@available(tvOS 13.0, *)){
+            if(_customOverlayViewController){
+                _playerViewController.customOverlayViewController = _customOverlayViewController;
+                _customOverlayViewController= nil;
+            }
+         }
+     }
+ }
 -(void) setPendingSeekTime:(NSNotification*)notification
 {
     NSDictionary* userInfo = notification.userInfo;
@@ -1047,6 +1080,10 @@ static int const RCTVideoUnset = -1;
                                            selector:@selector(didFailToFinishPlaying:)
                                                name: AVPlayerItemFailedToPlayToEndTimeNotification
                                              object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(didFailToFinishPlaying:)
+                                                 name: AVPlayerItemFailedToPlayToEndTimeNotification
+                                               object:nil];
 
 }
 
@@ -1279,7 +1316,7 @@ static int const RCTVideoUnset = -1;
     _maxResolution = maxResolution;
     NSNumber *width = maxResolution[@"width"];
     NSNumber *height = maxResolution[@"height"];
-    
+
     if (@available(tvOS 11.0, *)) {
         [self->_playerItem setPreferredMaximumResolution:CGSizeMake(width.floatValue, height.floatValue)];
         DebugLog(@"Setting max resolution to: %f by %f", width.floatValue, height.floatValue);
@@ -1692,6 +1729,67 @@ static int const RCTVideoUnset = -1;
     }
     return adBreaksCMTime;
 }
+-(void) onEpisodesTabAppear:(NSNotification*)notification
+{
+    if(self.onEpisodesTabAppear){
+        self.onEpisodesTabAppear(@{
+            @"target": self.reactTag
+        });
+    }
+
+}
+-(void) hidePlayerControls:(NSNotification*)notification
+{
+    [_playerViewController dismissViewControllerAnimated:true completion:^{
+    }];
+
+}
+- (EpisodesViewController*) prepareEpsiodesViewController{
+    NSArray *episodes = [_playerMetaData objectForKey:@"episodesCards"];
+    NSString *contentId = [_playerMetaData objectForKey:@"id"];
+
+
+    if(!_episodesTab){
+        UICollectionViewFlowLayout *flowLayout = [[UICollectionViewFlowLayout alloc] init];
+        flowLayout.minimumInteritemSpacing = 0;
+         if (@available(tvOS 15.0, *)) {
+            flowLayout.minimumLineSpacing = -25;
+            flowLayout.sectionInset = UIEdgeInsetsMake(-30,64,0,64);
+            flowLayout.itemSize = CGSizeMake(420, 270);
+
+        }else{
+            flowLayout.minimumLineSpacing = 0;
+            flowLayout.sectionInset = UIEdgeInsetsMake(130,64,64,64);
+            flowLayout.itemSize = CGSizeMake(420, 270);
+
+        }
+        [flowLayout setScrollDirection:UICollectionViewScrollDirectionHorizontal];
+        _episodesTab = [[EpisodesViewController alloc] initWithCollectionViewLayout:flowLayout];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(hidePlayerControls:)
+                                                     name:RCTHidePlayerControls
+                                                   object:nil];
+
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(onEpisodesTabAppear:)
+                                                     name:RCTEpisodeTabAppear
+                                                   object:nil];
+        if (@available(tvOS 15.0, *)) {
+            _episodesTab.preferredContentSize=CGSizeMake(1740, 350);
+
+        }else{
+            _episodesTab.preferredContentSize=CGSizeMake(1740, 450);
+
+
+        }
+        _episodesTab.onEpisodeSelect = self.onEpisodeSelect;
+    }
+
+    [_episodesTab setEpisodes:episodes];
+    _episodesTab.currentEpisodeId = contentId;
+
+    return _episodesTab;
+}
 //==============================ADS FUNCTIONS==================================
 
 - (bool) isAdsRunning: (CMTime) currentTime {
@@ -1879,9 +1977,9 @@ static int const RCTVideoUnset = -1;
                 UIImage *resolutionSwitchIcon = [UIImage imageNamed:@"bitrate"];
                 NSString * title = [_resolutionMenu valueForKey:@"title"];
                 NSArray * items = [_resolutionMenu valueForKey:@"items"];
-                
+
                 NSMutableArray * subMenuItems = [[NSMutableArray alloc] init];
-                
+
                 for (NSDictionary * item in items) {
                     NSString * itemTitle = [item valueForKey:@"title"];
                     NSString * itemValue = [item valueForKey:@"value"];
@@ -1899,14 +1997,14 @@ static int const RCTVideoUnset = -1;
                     }
                     [subMenuItems addObject:itemAction];
                 }
-                
+
                 UIMenu * uiSubMenu = [UIMenu menuWithTitle:title image:resolutionSwitchIcon identifier:nil options:UIMenuOptionsSingleSelection children:subMenuItems];
                 NSArray * arr = [_playerViewController transportBarCustomMenuItems];
                 if(arr == nil ){
                     arr = @[];
                 }
                 NSArray<__kindof UIMenuElement *> * menuItems = [arr arrayByAddingObject:uiSubMenu];
-                
+
                 self->_playerViewController.transportBarCustomMenuItems = menuItems;
             } else {
                 // custom sub menus are not supported before tvOS15
@@ -1996,8 +2094,97 @@ static int const RCTVideoUnset = -1;
             }
             [self->_playerItem  setExternalMetadata:metadataItems];
         }
+        NSDictionary *episodes = [_playerMetaData objectForKey:@"episodesCards"];
+        if(episodes && ![[NSString stringWithFormat:@"%@" ,episodes] isEqual:@"<null>"]){
 
-        if (@available(iOS 13.0, tvOS 13.0, *)) {
+            if([episodes isKindOfClass:[NSString class]]){
+                UIViewController *errorViewController =[[UIViewController alloc] init];
+
+                if (@available(tvOS 15.0, *)) {
+                    errorViewController.preferredContentSize=CGSizeMake(1740, 350);
+
+                }else{
+                    errorViewController.preferredContentSize=CGSizeMake(1740, 450);
+                }
+
+                errorViewController.preferredContentSize = CGSizeMake(1740, 200);
+                UIView *errorView = [[UIView alloc] init];
+                errorView.frame = CGRectMake(0 , 0 , 1740, 200);
+
+                UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 1000, 40)];
+                label.text = episodes;
+                label.textColor = [UIColor whiteColor];
+                label.center =errorView.center;
+                label.layer.shadowColor = [label.textColor CGColor];
+                label.layer.shadowOffset = CGSizeMake(0.0, 0.0);
+
+                 errorViewController.title = [_playerMetaData objectForKey:@"episodeInfoTitle"];
+
+                if (@available(tvOS 15.0, *)) {
+
+                    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+                    UIVisualEffectView *blurredEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+                    blurredEffectView.frame =errorView.bounds;
+                    blurredEffectView.layer.cornerRadius = 30;
+                    blurredEffectView.clipsToBounds = true;
+
+                    [errorView insertSubview:blurredEffectView atIndex:0];
+                    [errorView insertSubview:label atIndex:1];
+
+                    errorViewController.view = errorView;
+
+                    _playerViewController.customInfoViewControllers=@[errorViewController];
+                }else if(@available(tvOS 13.0, *)){
+                    for (UIView *view in _playerViewController.customOverlayViewController.view.subviews) {
+                        [view removeFromSuperview];
+                    }
+                    label.center =_playerViewController.customOverlayViewController.view.center;
+                    [_playerViewController.customOverlayViewController.view addSubview:label];
+                    _playerViewController.customOverlayViewController = errorViewController;
+
+                }
+            }else{
+                EpisodesViewController *epsiodesViewController = [self prepareEpsiodesViewController];
+                epsiodesViewController.title = [_playerMetaData objectForKey:@"episodeInfoTitle"];
+
+                if (@available(tvOS 15.0, *)) {
+
+                    _playerViewController.customInfoViewControllers=@[
+                        epsiodesViewController
+                    ];
+                    bool showSeasonsAction = [[_playerMetaData objectForKey:@"showSeasonsAction"] boolValue];
+
+                    if(showSeasonsAction){
+                        UIImage *seasonIcon = [UIImage systemImageNamed:@"list.dash"];
+
+                        UIAction *seasonAction =  [UIAction actionWithTitle:NSLocalizedString(@"Seasons", nil)
+                                                                    image:seasonIcon identifier:nil handler:^(UIAction* action){
+                            if(self.onSeasonsSelect) {
+                                [[NSNotificationCenter defaultCenter] postNotificationName:RCTHidePlayerControls
+                                                                                    object:nil
+                                                                                  userInfo:nil];
+                                self.onSeasonsSelect(@{@"target": self.reactTag});
+                            }
+                        }];
+                        _playerViewController.infoViewActions = [_playerViewController.infoViewActions arrayByAddingObject:seasonAction ];
+
+                    }
+
+                } else if(@available(tvOS 13.0, *)){
+
+                    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(85, 40, 200, 40)];
+                    label.text =[_playerMetaData objectForKey:@"episodeInfoTitle"];
+                    label.textColor = [UIColor whiteColor];
+
+                    label.layer.shadowColor = [label.textColor CGColor];
+                    label.layer.shadowOffset = CGSizeMake(0.0, 0.0);
+                    _playerViewController.customOverlayViewController = epsiodesViewController;
+                    [_playerViewController.customOverlayViewController.view addSubview:label];
+
+                }
+            }
+        }
+        if (@available(tvOS 13.0, *)) {
             [[NSNotificationCenter defaultCenter] addObserver:self
                                                      selector:@selector(handleMediaSelectionChange:)
                                                      name:AVPlayerItemMediaSelectionDidChangeNotification

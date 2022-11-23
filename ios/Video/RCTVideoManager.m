@@ -27,6 +27,7 @@ RCT_EXPORT_VIEW_PROPERTY(canUseNetworkResourcesForLiveStreamingWhilePaused, BOOL
 RCT_EXPORT_VIEW_PROPERTY(shahidYouboraOptions, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(playerMetaData, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(adSegments, NSArray);
+RCT_EXPORT_VIEW_PROPERTY(smallPlayer, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(paddingBottomTrack, float);
 RCT_EXPORT_VIEW_PROPERTY(maxBitRate, float);
 RCT_EXPORT_VIEW_PROPERTY(resizeMode, NSString);
@@ -84,6 +85,9 @@ RCT_EXPORT_VIEW_PROPERTY(onAdEvent, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onPressHdToggle, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onPressSportStats, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onPressNoAds, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onEpisodeSelect, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onSeasonsSelect, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onEpisodesTabAppear, RCTDirectEventBlock);
 
 RCT_EXPORT_METHOD(stop){
     [_video stop];

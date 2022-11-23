@@ -137,6 +137,7 @@ static int const RCTVideoUnset = -1;
   NSNumber *_currentInterstitialIndex;
   float _pendingInterstitialSeekTime;
   NSArray *infoViewActions;
+  id lastSelectedResolution;
 
 #if __has_include(<react-native-video/RCTVideoCache.h>)
   RCTVideoCache * _videoCache;
@@ -1981,28 +1982,60 @@ static int const RCTVideoUnset = -1;
                 NSMutableArray * subMenuItems = [[NSMutableArray alloc] init];
 
                 for (NSDictionary * item in items) {
+                    
+                    // Extract
                     NSString * itemTitle = [item valueForKey:@"title"];
                     NSString * itemValue = [item valueForKey:@"value"];
-
+                    BOOL isItemLocked = [item valueForKey:@"locked"];
+                    
+                    // Create new action for the submenu
                     UIAction * itemAction = [UIAction actionWithTitle:itemTitle image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                         DebugLog(@"Pressing Resolution Selection %@", itemTitle);
                         NSDictionary * args =  @{
                             @"type": @"onResolutionSelected",
                             @"value": itemValue,
+                            @"locked": @(isItemLocked),
                         };
                         self.onResolutionSelect(args);
+                        
+                        // in case the item is locked, keep the last selected item as ON
+                        if (isItemLocked) {
+                            [action setState:UIMenuElementStateOff];
+                            
+                            if (self->lastSelectedResolution != nil) {
+                                [self->lastSelectedResolution setState:UIMenuElementStateOn];
+                            }
+                        } else {
+                            self->lastSelectedResolution = action;
+                        }
+                        
                     }];
+                                        
+                    // Adding default selected tick
                     if (itemValue.floatValue == [[_maxResolution valueForKey:@"height"] floatValue]) {
                         [itemAction setState:UIMenuElementStateOn];
+                        self->lastSelectedResolution = itemAction;
                     }
+                    
+                    // Adding package tag images for locked resolutions
+                    UIImage * imageTag = isItemLocked
+                    ? [UIImage imageNamed:@"vip-rn-player"]
+                    : [UIImage imageNamed:@"vip-rn-player-transparent"];
+                    // note: VIP tag will take paddings as part of the image itself
+                    [itemAction setImage:imageTag];
+                    
+                    // Add the action item to the submenu
                     [subMenuItems addObject:itemAction];
                 }
 
+                // Create the submenu for resolutions (bitrate selection)
                 UIMenu * uiSubMenu = [UIMenu menuWithTitle:title image:resolutionSwitchIcon identifier:nil options:UIMenuOptionsSingleSelection children:subMenuItems];
+                                
                 NSArray * arr = [_playerViewController transportBarCustomMenuItems];
                 if(arr == nil ){
                     arr = @[];
                 }
+                // Merge the newly created submenu with the others CustomMenuItems
                 NSArray<__kindof UIMenuElement *> * menuItems = [arr arrayByAddingObject:uiSubMenu];
 
                 self->_playerViewController.transportBarCustomMenuItems = menuItems;
@@ -2010,6 +2043,7 @@ static int const RCTVideoUnset = -1;
                 // custom sub menus are not supported before tvOS15
             }
         }
+        
         NSString *title = [_playerMetaData objectForKey:@"title"];
         NSString *type = [_playerMetaData objectForKey:@"type"];
         NSString *subtitle = [_playerMetaData objectForKey:@"subtitle"];

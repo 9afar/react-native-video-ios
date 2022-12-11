@@ -100,6 +100,9 @@ RCT_REMAP_METHOD(playerControlInteraction,
                  value:(BOOL)value){
     [_video playerControlInteraction: value];
 }
+RCT_REMAP_METHOD(hidePlayerUIControls){
+    [_video hidePlayerUIControls];
+}
 RCT_REMAP_METHOD(setYouboraError,
                 error:(NSDictionary *)error){
     [_video setYouboraError:error];

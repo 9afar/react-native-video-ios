@@ -311,6 +311,9 @@ export default class Video extends Component {
   playerControlInteraction = (toggleValue) => {
     NativeModules.VideoManager.playerControlInteraction(toggleValue);
   }
+  hidePlayerUIControls = () => {
+    NativeModules.VideoManager.hidePlayerUIControls();
+  }
  setYouboraError = (error) => {
   NativeModules.VideoManager.setYouboraError(error);
   }

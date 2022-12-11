@@ -74,6 +74,7 @@ typedef NS_ENUM(NSInteger, RCTVideoError) {
 - (BOOL)setLicenseResultError:(NSString * )error;
 - (void)toggleSkipVisbility:(BOOL)value;
 - (void)playerControlInteraction:(BOOL)value;
+- (void)hidePlayerUIControls;
 - (void)setYouboraError:(NSDictionary * )error;
 - (void)stop;
 

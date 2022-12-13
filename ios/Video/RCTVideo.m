@@ -11,6 +11,7 @@
 #import "TVUIKit/TVUIKit.h"
 
 static NSString *const RCTSetPendingSeekTimeNotification = @"RCTSetPendingSeekTimeNotification";
+static NSString *const RCTDidSelectMediaSelectionOption = @"RCTDidSelectMediaSelectionOption";
 static NSString *const RCTEpisodeTabAppear = @"RCTEpisodeTabAppear";
 static NSString *const RCTHidePlayerControls = @"RCTHidePlayerControls";
 
@@ -1692,27 +1693,22 @@ static int const RCTVideoUnset = -1;
     _playerViewController.preferredOrientation = orientation;
   }
 }
-- (void)handleMediaSelectionChange:(NSNotification *)notification {
-    AVPlayerItem *playerItem = (AVPlayerItem *)notification.object;
-    if([playerItem.asset isKindOfClass:[AVURLAsset class]]){
-        AVURLAsset *asset = (AVURLAsset *)playerItem.asset;
-        AVMediaSelectionGroup *audio = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicAudible];
-        AVMediaSelectionGroup *subtitles = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicLegible];
-        AVMediaSelectionOption *selectedAudio = [playerItem.currentMediaSelection selectedMediaOptionInMediaSelectionGroup:audio];
-        AVMediaSelectionOption *selectedSubtitles = [playerItem.currentMediaSelection selectedMediaOptionInMediaSelectionGroup:subtitles];
-        if(self.onMediaSelectionChange){
-            self.onMediaSelectionChange(@{
-                @"videoSelectedAudio" : @{
-                    @"name"  :[selectedAudio displayName] ? [selectedAudio displayName]  : @"",
-                    @"language": [selectedAudio extendedLanguageTag] ?  [selectedAudio extendedLanguageTag]:@""
-                },
-                @"videoSelectedSubtitle": @{
-                    @"name"  :[selectedSubtitles displayName] ? [selectedSubtitles displayName]  : @"",
-                    @"language": [selectedSubtitles extendedLanguageTag] ?  [selectedSubtitles extendedLanguageTag]:@"off"
-                },
-                @"target": self.reactTag
-            });
-        }
+- (void)onMediaSelectionOption:(NSNotification *)notification {
+    NSDictionary* userInfo = notification.userInfo;
+    NSString *name = userInfo[@"displayName"];
+    NSString *mediaType = userInfo[@"mediaType"];
+    NSString *extendedLanguageTag = userInfo[@"extendedLanguageTag"];
+
+
+    if(self.onMediaSelectionChange){
+        self.onMediaSelectionChange(@{
+            @"mediaOption" : @{
+                @"name"  : name,
+                @"type":  mediaType,
+                @"language" : extendedLanguageTag
+            },
+            @"target": self.reactTag
+        });
     }
 }
 
@@ -1775,6 +1771,8 @@ static int const RCTVideoUnset = -1;
                                                  selector:@selector(onEpisodesTabAppear:)
                                                      name:RCTEpisodeTabAppear
                                                    object:nil];
+
+
         if (@available(tvOS 15.0, *)) {
             _episodesTab.preferredContentSize=CGSizeMake(1740, 350);
 
@@ -1785,12 +1783,12 @@ static int const RCTVideoUnset = -1;
         }
         _episodesTab.onEpisodeSelect = self.onEpisodeSelect;
     }
-    
+
     if(_episodesTab){
         [_episodesTab setEpisodes:episodes];
         _episodesTab.currentEpisodeId = contentId;
     }
-    
+
     return _episodesTab;
 }
 //==============================ADS FUNCTIONS==================================
@@ -1984,12 +1982,12 @@ static int const RCTVideoUnset = -1;
                 NSMutableArray * subMenuItems = [[NSMutableArray alloc] init];
 
                 for (NSDictionary * item in items) {
-                    
+
                     // Extract
                     NSString * itemTitle = [item valueForKey:@"title"];
                     NSString * itemValue = [item valueForKey:@"value"];
                     BOOL isItemLocked = [item valueForKey:@"locked"];
-                    
+
                     // Create new action for the submenu
                     UIAction * itemAction = [UIAction actionWithTitle:itemTitle image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                         DebugLog(@"Pressing Resolution Selection %@", itemTitle);
@@ -1999,40 +1997,40 @@ static int const RCTVideoUnset = -1;
                             @"locked": @(isItemLocked),
                         };
                         self.onResolutionSelect(args);
-                        
+
                         // in case the item is locked, keep the last selected item as ON
                         if (isItemLocked) {
                             [action setState:UIMenuElementStateOff];
-                            
+
                             if (self->lastSelectedResolution != nil) {
                                 [self->lastSelectedResolution setState:UIMenuElementStateOn];
                             }
                         } else {
                             self->lastSelectedResolution = action;
                         }
-                        
+
                     }];
-                                        
+
                     // Adding default selected tick
                     if (itemValue.floatValue == [[_maxResolution valueForKey:@"height"] floatValue]) {
                         [itemAction setState:UIMenuElementStateOn];
                         self->lastSelectedResolution = itemAction;
                     }
-                    
+
                     // Adding package tag images for locked resolutions
                     UIImage * imageTag = isItemLocked
                     ? [UIImage imageNamed:@"vip-rn-player"]
                     : [UIImage imageNamed:@"vip-rn-player-transparent"];
                     // note: VIP tag will take paddings as part of the image itself
                     [itemAction setImage:imageTag];
-                    
+
                     // Add the action item to the submenu
                     [subMenuItems addObject:itemAction];
                 }
 
                 // Create the submenu for resolutions (bitrate selection)
                 UIMenu * uiSubMenu = [UIMenu menuWithTitle:title image:resolutionSwitchIcon identifier:nil options:UIMenuOptionsSingleSelection children:subMenuItems];
-                                
+
                 NSArray * arr = [_playerViewController transportBarCustomMenuItems];
                 if(arr == nil ){
                     arr = @[];
@@ -2045,7 +2043,7 @@ static int const RCTVideoUnset = -1;
                 // custom sub menus are not supported before tvOS15
             }
         }
-        
+
         NSString *title = [_playerMetaData objectForKey:@"title"];
         NSString *type = [_playerMetaData objectForKey:@"type"];
         NSString *subtitle = [_playerMetaData objectForKey:@"subtitle"];
@@ -2130,45 +2128,51 @@ static int const RCTVideoUnset = -1;
             }
             [self->_playerItem  setExternalMetadata:metadataItems];
         }
+
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(onMediaSelectionOption:)
+                                                     name:RCTDidSelectMediaSelectionOption
+                                                   object:nil];
+
         NSDictionary *episodes = [_playerMetaData objectForKey:@"episodesCards"];
         if(episodes && ![[NSString stringWithFormat:@"%@" ,episodes] isEqual:@"<null>"]){
-            
+
             if([episodes isKindOfClass:[NSString class]]){
                 UIViewController *errorViewController =[[UIViewController alloc] init];
-                
+
                 if (@available(tvOS 15.0, *)) {
                     errorViewController.preferredContentSize=CGSizeMake(1740, 350);
-                    
+
                 }else{
                     errorViewController.preferredContentSize=CGSizeMake(1740, 450);
                 }
-                
+
                 errorViewController.preferredContentSize = CGSizeMake(1740, 200);
                 UIView *errorView = [[UIView alloc] init];
                 errorView.frame = CGRectMake(0 , 0 , 1740, 200);
-                
+
                 UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 1000, 40)];
                 label.text = episodes;
                 label.textColor = [UIColor whiteColor];
                 label.center =errorView.center;
                 label.layer.shadowColor = [label.textColor CGColor];
                 label.layer.shadowOffset = CGSizeMake(0.0, 0.0);
-                
+
                 errorViewController.title = [_playerMetaData objectForKey:@"episodeInfoTitle"];
-                
+
                 if (@available(tvOS 15.0, *)) {
-                    
+
                     UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
                     UIVisualEffectView *blurredEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
                     blurredEffectView.frame =errorView.bounds;
                     blurredEffectView.layer.cornerRadius = 30;
                     blurredEffectView.clipsToBounds = true;
-                    
+
                     [errorView insertSubview:blurredEffectView atIndex:0];
                     [errorView insertSubview:label atIndex:1];
-                    
+
                     errorViewController.view = errorView;
-                    
+
                     _playerViewController.customInfoViewControllers=@[errorViewController];
                 }else if(@available(tvOS 13.0, *)){
                     for (UIView *view in _playerViewController.customOverlayViewController.view.subviews) {
@@ -2177,25 +2181,25 @@ static int const RCTVideoUnset = -1;
                     label.center =_playerViewController.customOverlayViewController.view.center;
                     [_playerViewController.customOverlayViewController.view addSubview:label];
                     _playerViewController.customOverlayViewController = errorViewController;
-                    
+
                 }
             }else{
                 EpisodesViewController *epsiodesViewController = [self prepareEpsiodesViewController];
-                
+
                 if(epsiodesViewController){
-                    
+
                     epsiodesViewController.title = [_playerMetaData objectForKey:@"episodeInfoTitle"];
-                    
+
                     if (@available(tvOS 15.0, *)) {
-                        
+
                         _playerViewController.customInfoViewControllers=@[
                             epsiodesViewController
                         ];
                         bool showSeasonsAction = [[_playerMetaData objectForKey:@"showSeasonsAction"] boolValue];
-                        
+
                         if(showSeasonsAction){
                             UIImage *seasonIcon = [UIImage systemImageNamed:@"list.dash"];
-                            
+
                             UIAction *seasonAction =  [UIAction actionWithTitle:NSLocalizedString(@"Seasons", nil)
                                                                           image:seasonIcon identifier:nil handler:^(UIAction* action){
                                 if(self.onSeasonsSelect) {
@@ -2206,29 +2210,24 @@ static int const RCTVideoUnset = -1;
                                 }
                             }];
                             _playerViewController.infoViewActions = [_playerViewController.infoViewActions arrayByAddingObject:seasonAction ];
-                            
+
                         }
-                        
+
                     } else if(@available(tvOS 13.0, *)){
-                        
+
                         UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(85, 40, 200, 40)];
                         label.text =[_playerMetaData objectForKey:@"episodeInfoTitle"];
                         label.textColor = [UIColor whiteColor];
-                        
+
                         label.layer.shadowColor = [label.textColor CGColor];
                         label.layer.shadowOffset = CGSizeMake(0.0, 0.0);
                         _playerViewController.customOverlayViewController = epsiodesViewController;
                         [_playerViewController.customOverlayViewController.view addSubview:label];
-                        
+
                     }
                 }
             }
-            if (@available(tvOS 13.0, *)) {
-                [[NSNotificationCenter defaultCenter] addObserver:self
-                                                         selector:@selector(handleMediaSelectionChange:)
-                                                             name:AVPlayerItemMediaSelectionDidChangeNotification
-                                                           object:_playerItem];
-            }
+
         }
 
     }

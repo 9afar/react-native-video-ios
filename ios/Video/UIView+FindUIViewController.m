@@ -2,6 +2,7 @@
 
 #import "UIView+FindUIViewController.h"
 static NSString *const RCTSetPendingSeekTimeNotification = @"RCTSetPendingSeekTimeNotification";
+static NSString *const RCTDidSelectMediaSelectionOption = @"RCTDidSelectMediaSelectionOption";
 
 @implementation UIView (FindUIViewController)
 AVPlayerItem *_playerItem;
@@ -72,5 +73,17 @@ timeToSeekAfterUserNavigatedFromTime:(CMTime)oldTime
     }
     return targetTime;
 
+}
+- (void)playerViewController:(AVPlayerViewController *)playerViewController didSelectMediaSelectionOption:(nullable AVMediaSelectionOption *)mediaSelectionOption inMediaSelectionGroup:(AVMediaSelectionGroup *)mediaSelectionGroup{
+    NSString *type= [mediaSelectionOption.mediaType  isEqual: @"clcp"]  ||  !mediaSelectionOption.mediaType ? @"sbtl" : mediaSelectionOption.mediaType;
+    [[NSNotificationCenter defaultCenter]
+     postNotificationName:RCTDidSelectMediaSelectionOption
+     object:nil
+     userInfo:@{
+        @"displayName": mediaSelectionOption.displayName ? mediaSelectionOption.displayName : @"",
+        @"mediaType": type ,
+        @"extendedLanguageTag": mediaSelectionOption.extendedLanguageTag ? mediaSelectionOption.extendedLanguageTag : [type  isEqual: @"sbtl"] ? @"off" : @""
+    }];
+    
 }
 @end

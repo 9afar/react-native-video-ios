@@ -240,7 +240,7 @@ static int const RCTVideoUnset = -1;
     dispatch_sync(dispatch_get_main_queue(), ^{
 
         if (@available(tvOS 13.0, *)) {
-          if(_playerViewController){
+          if(_playerViewController && _playerViewController.player && _playerViewController.view){
                 if (toggle) {
                         TVCardView *buttonView = [[TVCardView alloc]  initWithFrame: CGRectMake(1600, 900, 250, 100)];
                         UILabel *label = [[UILabel alloc] initWithFrame: CGRectMake(0, 0, 250, 100)];
@@ -359,6 +359,7 @@ static int const RCTVideoUnset = -1;
 
 - (void)applicationWillResignActive:(NSNotification *)notification
 {
+  [_playerViewController dismissViewControllerAnimated:YES completion:nil];
   if (_playInBackground || _playWhenInactive || _paused) return;
 
   [_player pause];

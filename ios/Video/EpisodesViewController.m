@@ -153,7 +153,13 @@ NSString * _reuseIdentifier = @"Cell";
 
                      dispatch_sync(dispatch_get_main_queue(), ^{
                          ImageView.image = overlayImage;
-                         ImageView.frame= CGRectMake(12, 12, overlayImage.size.width * 0.3, overlayImage.size.height* 0.3);
+                         bool isLive = [[episode objectForKey:@"isLive"] boolValue];
+                         if(isLive){
+                             ImageView.frame= CGRectMake(12, 12, overlayImage.size.width * 0.3, overlayImage.size.height* 0.3);
+                         }else{
+                             ImageView.frame= CGRectMake(12, 12, overlayImage.size.width * 0.5, overlayImage.size.height* 0.5);
+                         }
+                   
                          ImageView.layer.cornerRadius = 5;
                          ImageView.clipsToBounds = YES;
                      });

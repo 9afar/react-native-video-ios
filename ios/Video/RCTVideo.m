@@ -236,39 +236,22 @@ static int const RCTVideoUnset = -1;
     });
 }
 - (void)toggleSkipVisbility:(BOOL)toggle{
-
+    
     dispatch_sync(dispatch_get_main_queue(), ^{
-
-        if (@available(tvOS 13.0, *)) {
-          if(_playerViewController && _playerViewController.player && _playerViewController.view){
+        
+        if (@available(tvOS 15.0, *)) {
+            if(_playerViewController && _playerViewController.isViewLoaded &&  _playerViewController.view.window){
                 if (toggle) {
-                        TVCardView *buttonView = [[TVCardView alloc]  initWithFrame: CGRectMake(1600, 900, 250, 100)];
-                        UILabel *label = [[UILabel alloc] initWithFrame: CGRectMake(0, 0, 250, 100)];
-
-                        label.text =NSLocalizedString(@"SkipIntro", nil);
-                        [label setNumberOfLines: 0];
-                         label.textColor= [UIColor blackColor];
-
-                        label.font = [UIFont fontWithName:@"Helvetica-Bold" size:30];
-                        label.textAlignment = NSTextAlignmentCenter;
-                        [buttonView insertSubview:label atIndex:1];
-
-
-                        UITapGestureRecognizer *singleTap=[[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(skippingIntro)];
-                        [buttonView addGestureRecognizer:singleTap];
-                        buttonView.userInteractionEnabled = YES;
-
-                        UIViewController *viewControllerSkip = [UIViewController alloc];
-
-                         [viewControllerSkip.view insertSubview:buttonView atIndex:1];
-
-
-
-                        viewControllerSkip.modalPresentationStyle=UIModalPresentationOverFullScreen;
-                        viewControllerSkip.view.frame=_playerViewController.view.bounds;
-                        [_playerViewController presentViewController:viewControllerSkip animated:YES completion:nil];
+                    UIAction *skipAction =  [UIAction actionWithTitle:NSLocalizedString(@"SkipIntro", nil)
+                                                                image:nil identifier:nil handler:^(UIAction* action){
+                        if(self.onSkipIntro) {
+                            self.onSkipIntro(@{@"target": self.reactTag});
+                        }
+                    }];
+                    _playerViewController.contextualActions=@[skipAction];
+                    
                 } else {
-                  [_playerViewController dismissViewControllerAnimated:YES completion:nil];
+                    self->_playerViewController.contextualActions=@[];
                 }
             }
         }
@@ -359,7 +342,6 @@ static int const RCTVideoUnset = -1;
 
 - (void)applicationWillResignActive:(NSNotification *)notification
 {
-  [_playerViewController dismissViewControllerAnimated:YES completion:nil];
   if (_playInBackground || _playWhenInactive || _paused) return;
 
   [_player pause];

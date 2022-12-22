@@ -251,7 +251,7 @@ NSString * _reuseIdentifier = @"Cell";
 
         [[NSNotificationCenter defaultCenter] postNotificationName:RCTHidePlayerControls
                                                             object:nil
-                                                          userInfo:nil];
+                                                          userInfo:@{@"id" : episodeId}];
         self.onEpisodeSelect(@{
             @"id" : episodeId,
             @"index" : [NSString stringWithFormat:@"%ld", indexPath.row]

@@ -248,6 +248,7 @@ static int const RCTVideoUnset = -1;
                             self.onSkipIntro(@{@"target": self.reactTag});
                         }
                     }];
+                    
                     _playerViewController.contextualActions=@[skipAction];
                     
                 } else {
@@ -1722,6 +1723,16 @@ static int const RCTVideoUnset = -1;
 }
 -(void) hidePlayerControls:(NSNotification*)notification
 {
+
+    NSString *contentId = [_playerMetaData objectForKey:@"id"];
+    NSString *episodeId = [[notification userInfo] valueForKey:@"id"];
+    if(contentId != episodeId && episodeId && contentId){
+        if (@available(tvOS 15.0, *)) {
+            self->_playerViewController.contextualActions=@[];
+            _playerViewController.customInfoViewControllers = @[];
+        }
+    }
+ 
     [_playerViewController dismissViewControllerAnimated:true completion:^{
     }];
 

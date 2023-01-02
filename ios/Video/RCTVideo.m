@@ -1398,7 +1398,8 @@ static int const RCTVideoUnset = -1;
                        objectAtIndex:0];
       }
       if ([value isEqualToString:optionValue]) {
-        mediaOption = currentOption;
+
+          mediaOption = currentOption;
         break;
       }
     }
@@ -1416,8 +1417,27 @@ static int const RCTVideoUnset = -1;
     return;
   }
 
-  // If a match isn't found, option will be nil and text tracks will be disabled
-  [_player.currentItem selectMediaOption:mediaOption inMediaSelectionGroup:group];
+    // If a match isn't found, option will be nil and text tracks will be disabled
+    if(group){
+        NSMutableArray *allowedLanguages = [[NSMutableArray alloc] init];
+        for (int i = 0; i < group.options.count; ++i) {
+            AVMediaSelectionOption *currentOption = [group.options objectAtIndex:i];
+            NSString *mediaType = [currentOption mediaType];
+            
+            if([mediaType  isEqual: @"sbtl"]){
+                NSString *optionValue = [currentOption extendedLanguageTag];
+                if (![optionValue containsString:@"_fn"]) {
+                    [allowedLanguages addObject: optionValue];
+                }
+            }
+        }
+        if([allowedLanguages count] > 0 && _playerViewController){
+            _playerViewController.allowedSubtitleOptionLanguages= allowedLanguages;
+        }
+        
+    }
+    [_player.currentItem selectMediaOption:mediaOption inMediaSelectionGroup:group];
+    
 }
 
 - (void)setSelectedAudioTrack:(NSDictionary *)selectedAudioTrack {
@@ -2129,8 +2149,8 @@ static int const RCTVideoUnset = -1;
                                                  selector:@selector(onMediaSelectionOption:)
                                                      name:RCTDidSelectMediaSelectionOption
                                                    object:nil];
-
-        NSDictionary *episodes = [_playerMetaData objectForKey:@"episodesCards"];
+        
+         NSDictionary *episodes = [_playerMetaData objectForKey:@"episodesCards"];
         if(episodes && ![[NSString stringWithFormat:@"%@" ,episodes] isEqual:@"<null>"]){
 
             if([episodes isKindOfClass:[NSString class]]){

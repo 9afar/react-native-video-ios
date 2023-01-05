@@ -27,6 +27,7 @@ RCT_EXPORT_VIEW_PROPERTY(canUseNetworkResourcesForLiveStreamingWhilePaused, BOOL
 RCT_EXPORT_VIEW_PROPERTY(shahidYouboraOptions, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(playerMetaData, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(adSegments, NSArray);
+RCT_EXPORT_VIEW_PROPERTY(fnSubtitle, NSDictionary);
 RCT_EXPORT_VIEW_PROPERTY(smallPlayer, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(paddingBottomTrack, float);
 RCT_EXPORT_VIEW_PROPERTY(maxBitRate, float);

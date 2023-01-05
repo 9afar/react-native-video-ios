@@ -127,6 +127,8 @@ static int const RCTVideoUnset = -1;
   NSDictionary *_shahidYouboraOptions;
   NSDictionary *_playerMetaData;
   NSArray *_adSegments;
+  NSArray *_subtitles;
+  NSDictionary *_fnSubtitle;
   float _paddingBottomTrack;
   NSArray *_customInfoViewControllers;
   UIViewController *_customOverlayViewController;
@@ -664,6 +666,10 @@ static int const RCTVideoUnset = -1;
                                                    object:nil];
     }
     _adSegments = segments;
+}
+- (void)setFnSubtitle:(NSDictionary *)fnSubtitle{
+
+    _fnSubtitle = fnSubtitle;
 }
 - (void)setSmallPlayer:(BOOL)isSmallPlayer{
     if(isSmallPlayer){
@@ -1318,7 +1324,7 @@ static int const RCTVideoUnset = -1;
     _resolutionMenu = subMenu;
     // NOOP, we update ui once all meta data are ready, see: setPlayerUI method
 }
-
+ 
 - (void)setRate:(float)rate
 {
   _rate = rate;
@@ -1398,8 +1404,7 @@ static int const RCTVideoUnset = -1;
                        objectAtIndex:0];
       }
       if ([value isEqualToString:optionValue]) {
-
-          mediaOption = currentOption;
+        mediaOption = currentOption;
         break;
       }
     }
@@ -1416,28 +1421,28 @@ static int const RCTVideoUnset = -1;
     [_player.currentItem selectMediaOptionAutomaticallyInMediaSelectionGroup:group];
     return;
   }
-
-    // If a match isn't found, option will be nil and text tracks will be disabled
     if(group){
-        NSMutableArray *allowedLanguages = [[NSMutableArray alloc] init];
-        for (int i = 0; i < group.options.count; ++i) {
-            AVMediaSelectionOption *currentOption = [group.options objectAtIndex:i];
-            NSString *mediaType = [currentOption mediaType];
-            
-            if([mediaType  isEqual: @"sbtl"]){
-                NSString *optionValue = [currentOption extendedLanguageTag];
-                if (![optionValue containsString:@"_fn"]) {
-                    [allowedLanguages addObject: optionValue];
-                }
-            }
-        }
-        if([allowedLanguages count] > 0 && _playerViewController){
-            _playerViewController.allowedSubtitleOptionLanguages= allowedLanguages;
-        }
-        
-    }
-    [_player.currentItem selectMediaOption:mediaOption inMediaSelectionGroup:group];
-    
+         NSMutableArray *allowedLanguages = [[NSMutableArray alloc] init];
+        [allowedLanguages addObject: @{@"language" : @"off" , @"displayName" : NSLocalizedString(@"Off", nil)}];
+         for (int i = 0; i < group.options.count; ++i) {
+             AVMediaSelectionOption *currentOption = [group.options objectAtIndex:i];
+             NSString *mediaType = [currentOption mediaType];
+
+             if([mediaType  isEqual: @"sbtl"]){
+                 NSString *optionValue = [currentOption extendedLanguageTag];
+                 NSString *displayName = [currentOption displayName];
+              
+                  if (![optionValue containsString:@"_fn"] && ![optionValue containsString:@"-fn"]) {
+                     [allowedLanguages addObject: @{@"language" : optionValue , @"displayName" : displayName }];
+                 }
+             }
+         }
+        _subtitles = allowedLanguages;
+   }
+  // If a match isn't found, option will be nil and text tracks will be disabled
+  [_player.currentItem selectMediaOption:mediaOption inMediaSelectionGroup:group];
+  [self addSubtitleIcon];
+
 }
 
 - (void)setSelectedAudioTrack:(NSDictionary *)selectedAudioTrack {
@@ -1868,6 +1873,7 @@ static int const RCTVideoUnset = -1;
 }
 - (void) resetInterstitialParam{
     interstitialWatched= nil;
+    _subtitles = nil;
     interstitialCompleted = nil;
     _selectedInterstitialCW= nil;
     _pendingInterstitialSeekTime = 0;
@@ -1941,6 +1947,146 @@ static int const RCTVideoUnset = -1;
     }
 }
 
+-(void) addBitrateIcon {
+    if (@available(tvOS 15.0, *)) {
+        
+        UIImage *resolutionSwitchIcon = [UIImage imageNamed:@"bitrate"];
+        NSString * title = [_resolutionMenu valueForKey:@"title"];
+        NSArray * items = [_resolutionMenu valueForKey:@"items"];
+        
+        NSMutableArray * subMenuItems = [[NSMutableArray alloc] init];
+        
+        for (NSDictionary * item in items) {
+            
+            // Extract
+            NSString * itemTitle = [item valueForKey:@"title"];
+            NSString * itemValue = [item valueForKey:@"value"];
+            BOOL isItemLocked = [item valueForKey:@"locked"];
+            
+            // Create new action for the submenu
+            UIAction * itemAction = [UIAction actionWithTitle:itemTitle image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                DebugLog(@"Pressing Resolution Selection %@", itemTitle);
+                NSDictionary * args =  @{
+                    @"type": @"onResolutionSelected",
+                    @"value": itemValue,
+                    @"locked": @(isItemLocked),
+                };
+                self.onResolutionSelect(args);
+                
+                // in case the item is locked, keep the last selected item as ON
+                if (isItemLocked) {
+                    [action setState:UIMenuElementStateOff];
+                    
+                    if (self->lastSelectedResolution != nil) {
+                        [self->lastSelectedResolution setState:UIMenuElementStateOn];
+                    }
+                } else {
+                    self->lastSelectedResolution = action;
+                }
+                
+            }];
+            
+            // Adding default selected tick
+            if (itemValue.floatValue == [[_maxResolution valueForKey:@"height"] floatValue]) {
+                [itemAction setState:UIMenuElementStateOn];
+                self->lastSelectedResolution = itemAction;
+            }
+            
+            // Adding package tag images for locked resolutions
+            UIImage * imageTag = isItemLocked
+            ? [UIImage imageNamed:@"vip-rn-player"]
+            : [UIImage imageNamed:@"vip-rn-player-transparent"];
+            // note: VIP tag will take paddings as part of the image itself
+            [itemAction setImage:imageTag];
+            
+            // Add the action item to the submenu
+            [subMenuItems addObject:itemAction];
+        }
+        
+        // Create the submenu for resolutions (bitrate selection)
+        UIMenu * uiSubMenu = [UIMenu menuWithTitle:title image:resolutionSwitchIcon identifier:nil options:UIMenuOptionsSingleSelection children:subMenuItems];
+        
+        NSArray * arr = [_playerViewController transportBarCustomMenuItems];
+        if(arr == nil ){
+            arr = @[];
+        }
+        // Merge the newly created submenu with the others CustomMenuItems
+        NSArray<__kindof UIMenuElement *> * menuItems = [arr arrayByAddingObject:uiSubMenu];
+        
+        self->_playerViewController.transportBarCustomMenuItems = menuItems;
+    }
+}
+-(void) addSubtitleIcon {
+    if (@available(tvOS 15.0, *)) {
+        
+        UIImage *resolutionSwitchIcon = [UIImage systemImageNamed:@"captions.bubble"];
+        NSLog(@"_subtitles %@" , _subtitles);
+        NSString * title = [_resolutionMenu valueForKey:@"title"];
+        NSArray * items = _subtitles;
+        
+        NSMutableArray * subMenuItems = [[NSMutableArray alloc] init];
+        
+        for (NSDictionary * item in items) {
+            
+            // Extract
+            NSString * itemTitle = [item valueForKey:@"displayName"];
+            NSString * itemValue = [item valueForKey:@"language"];
+            AVMediaSelectionGroup *group = [self->_player.currentItem.asset
+                                            mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicLegible];
+            UIAction * itemAction = [UIAction actionWithTitle:itemTitle image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                
+                AVMediaSelectionOption *selectedOption = [[AVMediaSelectionOption alloc] init];
+                
+                for (int i = 0; i < group.options.count; ++i) {
+                    AVMediaSelectionOption *currentOption = [group.options objectAtIndex:i];
+                    NSString *mediaType = [currentOption mediaType];
+                    NSString *optionValue = [currentOption extendedLanguageTag];
+                    
+                    if(itemValue == optionValue){
+                        selectedOption = currentOption;
+                    }
+                }
+                [[NSNotificationCenter defaultCenter]
+                 postNotificationName:RCTDidSelectMediaSelectionOption
+                 object:nil
+                 userInfo:@{
+                    @"displayName": itemTitle,
+                    @"mediaType": @"sbtl" ,
+                    @"extendedLanguageTag": itemValue
+                }];
+                if([itemValue  isEqual:@"off"] && self->_fnSubtitle){
+                    [self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicLegible
+                                                     withCriteria:self->_fnSubtitle];
+                }else{
+                    [self->_player.currentItem selectMediaOption:selectedOption.extendedLanguageTag? selectedOption : nil inMediaSelectionGroup:group];
+                }
+                
+                
+            
+                
+            }];
+            AVMediaSelectionOption *selectedOption = [_playerItem.currentMediaSelection selectedMediaOptionInMediaSelectionGroup:group]; 
+            if (selectedOption.extendedLanguageTag == itemValue ||
+                (!selectedOption.extendedLanguageTag && [itemValue  isEqual:@"off"])
+                ) {
+                [itemAction setState:UIMenuElementStateOn];
+             }
+            
+            [subMenuItems addObject:itemAction];
+        }
+        
+        UIMenu * uiSubMenu = [UIMenu menuWithTitle:NSLocalizedString(@"Subtitle", nil) image:resolutionSwitchIcon identifier:nil options:UIMenuOptionsSingleSelection children:subMenuItems];
+        
+        NSArray * arr = [_playerViewController transportBarCustomMenuItems];
+        if(arr == nil ){
+            arr = @[];
+        }
+        // Merge the newly created submenu with the others CustomMenuItems
+        NSArray<__kindof UIMenuElement *> * menuItems = [arr arrayByAddingObject:uiSubMenu];
+        
+        self->_playerViewController.transportBarCustomMenuItems = menuItems;
+    }
+}
 - (void)setPlayerUI
 {
   @try{
@@ -1988,76 +2134,7 @@ static int const RCTVideoUnset = -1;
 
 
             self->_playerViewController.transportBarCustomMenuItems=customMenuItems;
-
-            // Adding Resolution Selection menu
-            if (@available(tvOS 15.0, *)) {
-                UIImage *resolutionSwitchIcon = [UIImage imageNamed:@"bitrate"];
-                NSString * title = [_resolutionMenu valueForKey:@"title"];
-                NSArray * items = [_resolutionMenu valueForKey:@"items"];
-
-                NSMutableArray * subMenuItems = [[NSMutableArray alloc] init];
-
-                for (NSDictionary * item in items) {
-
-                    // Extract
-                    NSString * itemTitle = [item valueForKey:@"title"];
-                    NSString * itemValue = [item valueForKey:@"value"];
-                    BOOL isItemLocked = [item valueForKey:@"locked"];
-
-                    // Create new action for the submenu
-                    UIAction * itemAction = [UIAction actionWithTitle:itemTitle image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                        DebugLog(@"Pressing Resolution Selection %@", itemTitle);
-                        NSDictionary * args =  @{
-                            @"type": @"onResolutionSelected",
-                            @"value": itemValue,
-                            @"locked": @(isItemLocked),
-                        };
-                        self.onResolutionSelect(args);
-
-                        // in case the item is locked, keep the last selected item as ON
-                        if (isItemLocked) {
-                            [action setState:UIMenuElementStateOff];
-
-                            if (self->lastSelectedResolution != nil) {
-                                [self->lastSelectedResolution setState:UIMenuElementStateOn];
-                            }
-                        } else {
-                            self->lastSelectedResolution = action;
-                        }
-
-                    }];
-
-                    // Adding default selected tick
-                    if (itemValue.floatValue == [[_maxResolution valueForKey:@"height"] floatValue]) {
-                        [itemAction setState:UIMenuElementStateOn];
-                        self->lastSelectedResolution = itemAction;
-                    }
-
-                    // Adding package tag images for locked resolutions
-                    UIImage * imageTag = isItemLocked
-                    ? [UIImage imageNamed:@"vip-rn-player"]
-                    : [UIImage imageNamed:@"vip-rn-player-transparent"];
-                    // note: VIP tag will take paddings as part of the image itself
-                    [itemAction setImage:imageTag];
-
-                    // Add the action item to the submenu
-                    [subMenuItems addObject:itemAction];
-                }
-
-                // Create the submenu for resolutions (bitrate selection)
-                UIMenu * uiSubMenu = [UIMenu menuWithTitle:title image:resolutionSwitchIcon identifier:nil options:UIMenuOptionsSingleSelection children:subMenuItems];
-
-                NSArray * arr = [_playerViewController transportBarCustomMenuItems];
-                if(arr == nil ){
-                    arr = @[];
-                }
-                // Merge the newly created submenu with the others CustomMenuItems
-                NSArray<__kindof UIMenuElement *> * menuItems = [arr arrayByAddingObject:uiSubMenu];
-
-                self->_playerViewController.transportBarCustomMenuItems = menuItems;
-            } else {
-                // custom sub menus are not supported before tvOS15
-            }
+            [self addBitrateIcon];
         }
 
         NSString *title = [_playerMetaData objectForKey:@"title"];
@@ -2149,8 +2226,9 @@ static int const RCTVideoUnset = -1;
                                                  selector:@selector(onMediaSelectionOption:)
                                                      name:RCTDidSelectMediaSelectionOption
                                                    object:nil];
+        _playerViewController.allowedSubtitleOptionLanguages = @[@""];
         
-         NSDictionary *episodes = [_playerMetaData objectForKey:@"episodesCards"];
+        NSDictionary *episodes = [_playerMetaData objectForKey:@"episodesCards"];
         if(episodes && ![[NSString stringWithFormat:@"%@" ,episodes] isEqual:@"<null>"]){
 
             if([episodes isKindOfClass:[NSString class]]){

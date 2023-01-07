@@ -1421,7 +1421,7 @@ static int const RCTVideoUnset = -1;
     [_player.currentItem selectMediaOptionAutomaticallyInMediaSelectionGroup:group];
     return;
   }
-    if(group){
+    if(group && [_subtitles count] == 0){
          NSMutableArray *allowedLanguages = [[NSMutableArray alloc] init];
         [allowedLanguages addObject: @{@"language" : @"off" , @"displayName" : NSLocalizedString(@"Off", nil)}];
          for (int i = 0; i < group.options.count; ++i) {
@@ -1438,10 +1438,10 @@ static int const RCTVideoUnset = -1;
              }
          }
         _subtitles = allowedLanguages;
+        [self addSubtitleIcon];
    }
   // If a match isn't found, option will be nil and text tracks will be disabled
   [_player.currentItem selectMediaOption:mediaOption inMediaSelectionGroup:group];
-  [self addSubtitleIcon];
 
 }
 
@@ -1873,7 +1873,6 @@ static int const RCTVideoUnset = -1;
 }
 - (void) resetInterstitialParam{
     interstitialWatched= nil;
-    _subtitles = nil;
     interstitialCompleted = nil;
     _selectedInterstitialCW= nil;
     _pendingInterstitialSeekTime = 0;
@@ -2553,6 +2552,7 @@ static int const RCTVideoUnset = -1;
     _playerViewController.delegate = nil;
   _playerViewController.player = nil;
   _playerViewController = nil;
+    _subtitles = nil;
   [self resetInterstitialParam];
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];

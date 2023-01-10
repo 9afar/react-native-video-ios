@@ -653,7 +653,7 @@ static int const RCTVideoUnset = -1;
 - (void)setPlayerMetaData:(NSDictionary *)playerMetaData {
     if(_playerMetaData != playerMetaData){
         _playerMetaData = playerMetaData;
-       [self setPlayerUI];
+        [self setPlayerUI];
     }
 }
 - (void)setAdSegments:(NSArray *)segments{
@@ -1421,25 +1421,7 @@ static int const RCTVideoUnset = -1;
     [_player.currentItem selectMediaOptionAutomaticallyInMediaSelectionGroup:group];
     return;
   }
-    if(group && [_subtitles count] == 0){
-         NSMutableArray *allowedLanguages = [[NSMutableArray alloc] init];
-        [allowedLanguages addObject: @{@"language" : @"off" , @"displayName" : NSLocalizedString(@"Off", nil)}];
-         for (int i = 0; i < group.options.count; ++i) {
-             AVMediaSelectionOption *currentOption = [group.options objectAtIndex:i];
-             NSString *mediaType = [currentOption mediaType];
-
-             if([mediaType  isEqual: @"sbtl"]){
-                 NSString *optionValue = [currentOption extendedLanguageTag];
-                 NSString *displayName = [currentOption displayName];
-              
-                  if (![optionValue containsString:@"_fn"] && ![optionValue containsString:@"-fn"]) {
-                     [allowedLanguages addObject: @{@"language" : optionValue , @"displayName" : displayName }];
-                 }
-             }
-         }
-        _subtitles = allowedLanguages;
-        [self addSubtitleIcon];
-   }
+   
   // If a match isn't found, option will be nil and text tracks will be disabled
   [_player.currentItem selectMediaOption:mediaOption inMediaSelectionGroup:group];
 
@@ -1450,10 +1432,45 @@ static int const RCTVideoUnset = -1;
   [self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicAudible
                                    withCriteria:_selectedAudioTrack];
 }
-
+-(void) fillSubtitlesList :(bool) edit {
+    
+    NSArray *textTracks = [self getTextTrackInfo];
+    if(textTracks.count > 0){
+        NSMutableArray *allowedLanguages = [[NSMutableArray alloc] init];
+        [allowedLanguages addObject: @{@"title" : @"off" , @"displayName" : NSLocalizedString(@"Off", nil)}];
+        for (int i = 0; i < textTracks.count; ++i) {
+            NSDictionary *textTrack =[textTracks objectAtIndex:i];
+            NSString *language = [textTrack valueForKey:@"language"];
+            NSString *title = [textTrack valueForKey:@"title"];
+            NSString *displayName = [textTrack valueForKey:@"displayName"];
+            
+            if (![title containsString:@"_fn"] && ![title containsString:@"-fn"]) {
+                [allowedLanguages 
+                 addObject: @{@"language" : language , @"displayName" : displayName , @"title" : title }];
+            }
+        }
+        _subtitles = allowedLanguages;
+        [self addSubtitleIcon: edit];
+    }
+}
+-(void) removeLastItemForTransportBarCustomMenuItems {
+    
+    if (@available(tvOS 15.0, *)) {
+        
+        NSMutableArray *transportBarCustomMenuItems = [(NSArray*) _playerViewController.transportBarCustomMenuItems mutableCopy];
+        
+        [transportBarCustomMenuItems removeLastObject];
+        
+        _playerViewController.transportBarCustomMenuItems = transportBarCustomMenuItems;
+    }
+}
 - (void)setSelectedTextTrack:(NSDictionary *)selectedTextTrack {
   _selectedTextTrack = selectedTextTrack;
-  if (_textTracks) { // sideloaded text tracks
+    if(_selectedTextTrack && _controls){
+        [self fillSubtitlesList : true];
+    }
+
+    if (_textTracks) { // sideloaded text tracks
     [self setSideloadedText];
   } else { // text tracks included in the HLS playlist
     [self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicLegible
@@ -1627,11 +1644,12 @@ static int const RCTVideoUnset = -1;
     }
     NSString *threeLanguage = [currentOption extendedLanguageTag] ? [currentOption extendedLanguageTag] : @"";
     NSString *language = [[currentOption locale] languageCode] ?[[currentOption locale] languageCode]  : @"";
-
+    
     NSDictionary *textTrack = @{
                                 @"index": [NSNumber numberWithInt:i],
                                 @"title": title,
-                                @"language": language,
+                                 @"language": language,
+                                @"displayName" : [currentOption displayName],
                                 @"three-letter-language": threeLanguage
                                 };
     [textTracks addObject:textTrack];
@@ -2015,21 +2033,26 @@ static int const RCTVideoUnset = -1;
         self->_playerViewController.transportBarCustomMenuItems = menuItems;
     }
 }
--(void) addSubtitleIcon {
+-(void) addSubtitleIcon:(bool) edit {
     if (@available(tvOS 15.0, *)) {
         
-        UIImage *resolutionSwitchIcon = [UIImage systemImageNamed:@"captions.bubble"];
-        NSLog(@"_subtitles %@" , _subtitles);
-        NSString * title = [_resolutionMenu valueForKey:@"title"];
+        UIImage *subtitleIcon = [UIImage systemImageNamed:@"captions.bubble"];
+        NSArray *textTracks = [self getTextTrackInfo];
+        NSDictionary *selectedTrack = nil;
+        if(_selectedTextTrack){
+            NSPredicate *predicate = [NSPredicate predicateWithFormat:@"index==%@",_selectedTextTrack[@"value"]];
+            NSArray *results = [textTracks filteredArrayUsingPredicate:predicate];
+            selectedTrack = results[0] ? results[0] : _subtitles[0];
+        }
+                
         NSArray * items = _subtitles;
-        
         NSMutableArray * subMenuItems = [[NSMutableArray alloc] init];
         
-        for (NSDictionary * item in items) {
+        for (int i = 0; i < items.count; ++i) {
+            NSDictionary *item = [items objectAtIndex:i];
             
-            // Extract
             NSString * itemTitle = [item valueForKey:@"displayName"];
-            NSString * itemValue = [item valueForKey:@"language"];
+            NSString * itemValue = [item valueForKey:@"title"];
             AVMediaSelectionGroup *group = [self->_player.currentItem.asset
                                             mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicLegible];
             UIAction * itemAction = [UIAction actionWithTitle:itemTitle image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -2038,7 +2061,6 @@ static int const RCTVideoUnset = -1;
                 
                 for (int i = 0; i < group.options.count; ++i) {
                     AVMediaSelectionOption *currentOption = [group.options objectAtIndex:i];
-                    NSString *mediaType = [currentOption mediaType];
                     NSString *optionValue = [currentOption extendedLanguageTag];
                     
                     if(itemValue == optionValue){
@@ -2053,6 +2075,7 @@ static int const RCTVideoUnset = -1;
                     @"mediaType": @"sbtl" ,
                     @"extendedLanguageTag": itemValue
                 }];
+                
                 if([itemValue  isEqual:@"off"] && self->_fnSubtitle){
                     [self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicLegible
                                                      withCriteria:self->_fnSubtitle];
@@ -2060,27 +2083,25 @@ static int const RCTVideoUnset = -1;
                     [self->_player.currentItem selectMediaOption:selectedOption.extendedLanguageTag? selectedOption : nil inMediaSelectionGroup:group];
                 }
                 
-                
-            
-                
             }];
-            AVMediaSelectionOption *selectedOption = [_playerItem.currentMediaSelection selectedMediaOptionInMediaSelectionGroup:group]; 
-            if (selectedOption.extendedLanguageTag == itemValue ||
-                (!selectedOption.extendedLanguageTag && [itemValue  isEqual:@"off"])
-                ) {
+            
+            if((!selectedTrack && [itemValue  isEqual: @"off"]) ||
+               ([selectedTrack valueForKey:@"title"] == itemValue)){
                 [itemAction setState:UIMenuElementStateOn];
-             }
+            }
             
             [subMenuItems addObject:itemAction];
         }
         
-        UIMenu * uiSubMenu = [UIMenu menuWithTitle:NSLocalizedString(@"Subtitle", nil) image:resolutionSwitchIcon identifier:nil options:UIMenuOptionsSingleSelection children:subMenuItems];
+        UIMenu * uiSubMenu = [UIMenu menuWithTitle:NSLocalizedString(@"Subtitle", nil) image:subtitleIcon identifier:nil options:UIMenuOptionsSingleSelection children:subMenuItems];
         
+        if(edit){
+            [self removeLastItemForTransportBarCustomMenuItems];
+        }
         NSArray * arr = [_playerViewController transportBarCustomMenuItems];
         if(arr == nil ){
             arr = @[];
         }
-        // Merge the newly created submenu with the others CustomMenuItems
         NSArray<__kindof UIMenuElement *> * menuItems = [arr arrayByAddingObject:uiSubMenu];
         
         self->_playerViewController.transportBarCustomMenuItems = menuItems;
@@ -2106,7 +2127,15 @@ static int const RCTVideoUnset = -1;
                         });
                     }
                 }];
-                [customMenuItems addObject:hdAction];
+                NSArray * arr = [_playerViewController transportBarCustomMenuItems];
+                if(arr == nil ){
+                    arr = @[];
+                }
+                // Merge the newly created submenu with the others CustomMenuItems
+                NSArray<__kindof UIMenuElement *> * menuItems = [arr arrayByAddingObject:hdAction];
+                
+                self->_playerViewController.transportBarCustomMenuItems = menuItems;
+                 
             }
             if(showSportStats){
                 UIImage *statsImage = [UIImage imageNamed:@"stats"];
@@ -2117,7 +2146,14 @@ static int const RCTVideoUnset = -1;
                         });
                     }
                 }];
-                [customMenuItems addObject:statsAction];
+                NSArray * arr = [_playerViewController transportBarCustomMenuItems];
+                if(arr == nil ){
+                    arr = @[];
+                }
+
+                NSArray<__kindof UIMenuElement *> * menuItems = [arr arrayByAddingObject:statsAction];
+                
+                self->_playerViewController.transportBarCustomMenuItems = menuItems;
             }
             if(showNoAds){
                 UIImage *noAdsImage = [UIImage imageNamed:@"no-ads"];
@@ -2130,10 +2166,12 @@ static int const RCTVideoUnset = -1;
                 }];
                 [customMenuItems addObject:noAdsAction];
             }
+            _playerViewController.allowedSubtitleOptionLanguages = @[@""];
 
-
-            self->_playerViewController.transportBarCustomMenuItems=customMenuItems;
+            NSArray *transportBarCustomMenuItems =  self->_playerViewController.transportBarCustomMenuItems;
+            self->_playerViewController.transportBarCustomMenuItems=[transportBarCustomMenuItems arrayByAddingObjectsFromArray:customMenuItems];
             [self addBitrateIcon];
+            [self fillSubtitlesList : false];
         }
 
         NSString *title = [_playerMetaData objectForKey:@"title"];
@@ -2225,7 +2263,7 @@ static int const RCTVideoUnset = -1;
                                                  selector:@selector(onMediaSelectionOption:)
                                                      name:RCTDidSelectMediaSelectionOption
                                                    object:nil];
-        _playerViewController.allowedSubtitleOptionLanguages = @[@""];
+   
         
         NSDictionary *episodes = [_playerMetaData objectForKey:@"episodesCards"];
         if(episodes && ![[NSString stringWithFormat:@"%@" ,episodes] isEqual:@"<null>"]){

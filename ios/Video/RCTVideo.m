@@ -670,7 +670,7 @@ static int const RCTVideoUnset = -1;
 - (void)setFnSubtitle:(NSDictionary *)fnSubtitle{
 
     _fnSubtitle = fnSubtitle;
-    if(!_selectedTextTrack){
+    if(!_selectedTextTrack && fnSubtitle){
         [self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicLegible
                                          withCriteria:fnSubtitle];
     }
@@ -1483,6 +1483,10 @@ static int const RCTVideoUnset = -1;
   }
   if(_player != nil && _player.currentItem != nil && _paddingBottomTrack > 0){
     [self updateSubtitleStyle];
+  }
+  if(!_selectedTextTrack && self->_fnSubtitle){
+      [self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicLegible
+                       withCriteria:self->_fnSubtitle];
   }
 }
 
@@ -2375,6 +2379,8 @@ static int const RCTVideoUnset = -1;
         }
 
     }
+      _playerViewController.view.hidden =@YES;
+      [self usePlayerLayer];
   } @catch(id anException) {
      NSLog(@"****************** setPlayerUI  Error ******************");
   }

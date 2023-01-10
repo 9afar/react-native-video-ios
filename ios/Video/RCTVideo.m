@@ -2379,8 +2379,6 @@ static int const RCTVideoUnset = -1;
         }
 
     }
-      _playerViewController.view.hidden =@YES;
-      [self usePlayerLayer];
   } @catch(id anException) {
      NSLog(@"****************** setPlayerUI  Error ******************");
   }

@@ -1791,8 +1791,10 @@ static int const RCTVideoUnset = -1;
 }
 -(void) hidePresentedViewController
 {
-    [_playerViewController dismissViewControllerAnimated:true completion:^{
-    }];
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        [_playerViewController dismissViewControllerAnimated:true completion:^{
+        }];
+    });
 }
 - (EpisodesViewController*) prepareEpsiodesViewController{
     NSArray *episodes = [_playerMetaData objectForKey:@"episodesCards"];

@@ -653,6 +653,9 @@ static int const RCTVideoUnset = -1;
 - (void)setPlayerMetaData:(NSDictionary *)playerMetaData {
     if(_playerMetaData != playerMetaData){
         _playerMetaData = playerMetaData;
+        if (@available(tvOS 15.0, *)) {
+            _playerViewController.transportBarCustomMenuItems = @[];
+        } 
         [self setPlayerUI];
     }
 }

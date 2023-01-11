@@ -308,6 +308,9 @@ export default class Video extends Component {
   toggleSkipVisbility = (toggleValue) => {
     NativeModules.VideoManager.toggleSkipVisbility(toggleValue);
   }
+  hidePresentedViewController = () => {
+    NativeModules.VideoManager.hidePresentedViewController();
+  }
   playerControlInteraction = (toggleValue) => {
     NativeModules.VideoManager.playerControlInteraction(toggleValue);
   }

@@ -76,5 +76,6 @@ typedef NS_ENUM(NSInteger, RCTVideoError) {
 - (void)playerControlInteraction:(BOOL)value;
 - (void)setYouboraError:(NSDictionary * )error;
 - (void)stop;
+- (void)hidePresentedViewController;
 
 @end

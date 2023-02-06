@@ -75,7 +75,7 @@ static int const RCTVideoUnset = -1;
   BOOL _requestingCertificate;
   BOOL _requestingCertificateErrored;
   NSDictionary* _resolutionMenu;
-
+  NSDictionary* _audioSubtitleTracks;
   /* DRM */
   NSDictionary *_drm;
   AVAssetResourceLoadingRequest *_loadingRequest;
@@ -1333,6 +1333,11 @@ static int const RCTVideoUnset = -1;
     // NOOP, we update ui once all meta data are ready, see: setPlayerUI method
 }
 
+- (void)setAudioSubtitleTracks:(NSDictionary *)tracks
+{
+    _audioSubtitleTracks = tracks;
+}
+
 - (void)setRate:(float)rate
 {
   _rate = rate;
@@ -1443,6 +1448,8 @@ static int const RCTVideoUnset = -1;
 -(void) fillSubtitlesList :(bool) edit {
 
     NSArray *textTracks = [self getTextTrackInfo];
+    NSArray *loclizedTracks = [_audioSubtitleTracks valueForKey:@"subtitle"];
+    
     if(textTracks.count > 0){
         NSMutableArray *allowedLanguages = [[NSMutableArray alloc] init];
         [allowedLanguages addObject: @{@"title" : @"off" , @"displayName" : NSLocalizedString(@"Off", nil)}];
@@ -1452,9 +1459,20 @@ static int const RCTVideoUnset = -1;
             NSString *title = [textTrack valueForKey:@"title"];
             NSString *displayName = [textTrack valueForKey:@"displayName"];
 
-            if (![title containsString:@"_fn"] && ![title containsString:@"-fn"]) {
+            if (![title containsString:@"_fn"] && ![title containsString:@"-fn"] && ![title containsString:@"dummy"]) {
+                
+                __block NSString *localizedDisplayName = displayName;
+                
+                if (loclizedTracks != nil && [loclizedTracks count] > 0) {
+                    [loclizedTracks enumerateObjectsUsingBlock:^(NSDictionary* obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                        if ([obj valueForKey:@"language"] == language) {
+                            localizedDisplayName = [obj valueForKey:@"UIlabel"];
+                        }
+                    }];
+                }
+                
                 [allowedLanguages
-                 addObject: @{@"language" : language , @"displayName" : displayName , @"title" : title }];
+                 addObject: @{@"language" : language , @"displayName" : localizedDisplayName , @"title" : title }];
             }
         }
         _subtitles = allowedLanguages;

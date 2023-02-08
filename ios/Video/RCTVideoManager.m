@@ -58,6 +58,7 @@ RCT_EXPORT_VIEW_PROPERTY(filterEnabled, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(progressUpdateInterval, float);
 RCT_EXPORT_VIEW_PROPERTY(restoreUserInterfaceForPIPStopCompletionHandler, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(resolutionsMenu, NSDictionary);
+RCT_EXPORT_VIEW_PROPERTY(audioSubtitleTracks, NSDictionary);
 /* Should support: onLoadStart, onLoad, and onError to stay consistent with Image */
 RCT_EXPORT_VIEW_PROPERTY(onResolutionSelect, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onVideoLoadStart, RCTDirectEventBlock);

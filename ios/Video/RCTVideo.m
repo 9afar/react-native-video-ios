@@ -1336,6 +1336,10 @@ static int const RCTVideoUnset = -1;
 - (void)setAudioSubtitleTracks:(NSDictionary *)tracks
 {
     _audioSubtitleTracks = tracks;
+    NSArray *subtitlesList = [tracks valueForKey:@"subtitle"];
+    if ([subtitlesList count] > 0) {
+        [self fillSubtitlesList:true];
+    }
 }
 
 - (void)setRate:(float)rate
@@ -2097,7 +2101,7 @@ static int const RCTVideoUnset = -1;
             NSDictionary *item = [items objectAtIndex:i];
 
             NSString * itemTitle = [item valueForKey:@"displayName"];
-            NSString * itemValue = [item valueForKey:@"title"];
+            NSString * itemValue = [item valueForKey:@"language"];
             AVMediaSelectionGroup *group = [self->_player.currentItem.asset
                                             mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicLegible];
             UIAction * itemAction = [UIAction actionWithTitle:itemTitle image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -2131,7 +2135,7 @@ static int const RCTVideoUnset = -1;
             }];
 
             if((!selectedTrack && [itemValue  isEqual: @"off"]) ||
-               ([selectedTrack valueForKey:@"title"] == itemValue)){
+               ([selectedTrack valueForKey:@"language"] == itemValue)){
                 [itemAction setState:UIMenuElementStateOn];
             }
 
